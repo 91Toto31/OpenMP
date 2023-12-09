@@ -19,37 +19,54 @@
 #define Maxiters 15 // Maxiters is the maximum number of iterations
 #define Threshold 0.000001
 
-double *mallocArray( double ***array, int n, int m, int initialize ) ;
-void freeArray( double ***array, double *arrayData ) ;
+double *mallocArray(double ***array, int n, int m, int initialize);
+void freeArray(double ***array, double *arrayData);
+void kMeans(double patterns[][Nv], double centers[][Nv]);
+void initialCenters(double patterns[][Nv], double centers[][Nv]);
+double findClosestCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***distances);
+void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z);
+double distEucl(double pattern[], double center[]);
+int argMin(double array[], int length);
+void createRandomVectors(double patterns[][Nv]);
+void printPatterns(double patterns[][Nv]);
 
-void kMeans( double patterns[][Nv], double centers[][Nv] ) ;
-void initialCenters( double patterns[][Nv], double centers[][Nv] ) ;
-double findClosestCenters( double patterns[][Nv], double centers[][Nv], int classes[], double ***distances ) ;
-void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z ) ;
+void selectRandomInitialCenters(double patterns[][Nv], double centers[][Nv]);
+void calculateDistanceAndAssignCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***distances);
+void updateMeans(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z);
 
-double distEucl( double pattern[], double center[] ) ;
-int argMin( double array[], int length ) ;
+double calculateEuclideanDistance(double pattern[], double center[]);
 
-void createRandomVectors( double patterns[][Nv] ) ;
+int main(int argc, char *argv[]) {
+    static double patterns[N][Nv];
+    static double centers[Nc][Nv];
 
-int main( int argc, char *argv[] ) {
+    createRandomVectors(patterns);
+    printPatterns(patterns);
 
-	static double patterns[N][Nv] ;
-	static double centers[Nc][Nv] ;
+    selectRandomInitialCenters(patterns, centers);
 
-	createRandomVectors( patterns ) ;
-	kMeans( patterns, centers ) ;
+    simpleLloydsAlgorithm(patterns, centers);
 
-    return EXIT_SUCCESS;    
+    // Libération de la mémoire allouée
+    freeArray((double ***)&patterns, patternData);
+    freeArray((double ***)&centers, centerData);
+
+    return EXIT_SUCCESS;
 }
 
-/*
- *
- *
- * Create some random patterns for classification.
- * 
- * 
- */
+void printPatterns(double patterns[][Nv]) {
+    size_t i, j;
+    printf("Random Patterns:\n");
+    for (i = 0; i < N; i++) {
+        printf("[ ");
+        for (j = 0; j < Nv; j++) {
+            printf("%lf ", patterns[i][j]);
+        }
+        printf("]\n");
+    }
+    printf("\n");
+}
+
 void createRandomVectors( double patterns[][Nv] ) {
 
 	srand( 1059364 ) ;
@@ -64,13 +81,31 @@ void createRandomVectors( double patterns[][Nv] ) {
 	return ;
 }
 
-/*
- *
- *
- * Simple implementations of Lloyd's Algorithm
- *
- *
- */
+/*** Simple Implementation of Lloyd's Algorithm ***/
+void simpleLloydsAlgorithm(double patterns[][Nv], double centers[][Nv]) {
+    double error = INFINITY;
+    double errorBefore;
+    int step = 0;
+
+    // class or category of each pattern
+    int *classes = (int *)malloc(N * sizeof(int));
+    // distances between patterns and centers
+    double **distances;
+    double *distanceData = mallocArray(&distances, N, Nc, 0);
+
+    initialCenters(patterns, centers); // Step 1
+
+    do {
+        errorBefore = error;
+        error = findClosestCenters(patterns, centers, classes, &distances); // Step 2
+        printf("Step:%d||Error:%lf,\n", step, (errorBefore - error) / error);
+        step++;
+    } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold)); // Step 3
+
+    free(classes);
+    freeArray(&distances, distanceData);
+}
+
 void kMeans( double patterns[][Nv], double centers[][Nv] ) {
 
     double error = INFINITY ;
@@ -104,15 +139,20 @@ void kMeans( double patterns[][Nv], double centers[][Nv] ) {
     return ;
 }
 
-/*
- *
- *
- * Allocates memory for a 2D array ([n][m]) of double type.
- * It uses malloc so if you want to initialize data
- * use initialize value != 0.
- *
- *
- */
+double *mallocArray(double ***array, int n, int m, int initialize) {
+    *array = (double **)malloc(n * sizeof(double *));
+    // Pour éviter de remplir le tas avec de petites allocations de mémoire.
+    double *arrayData = malloc(n * m * sizeof(double));
+
+    if (initialize != 0)
+        memset(arrayData, 0, n * m * sizeof(double));
+
+    size_t i;
+    for (i = 0; i < n; i++)
+        (*array)[i] = arrayData + i * m;
+
+    return arrayData;
+
 double *mallocArray( double ***array, int n, int m, int initialize ) {
 
     * array = (double **)malloc( n * sizeof(double *) ) ;
@@ -130,14 +170,18 @@ double *mallocArray( double ***array, int n, int m, int initialize ) {
 }
 
 
-/*
- *
- *
- * Selects patterns (randomly) as initial centers,
- * different patterns used for each center.
- *
- *
- */
+oid selectRandomInitialCenters(double patterns[][Nv], double centers[][Nv]) {
+    size_t i, j;
+
+    for (i = 0; i < Nc; i++) {
+        // Sélectionne un motif aléatoire comme centre initial
+        size_t centerIndex = rand() % N;
+        for (j = 0; j < Nv; j++) {
+            centers[i][j] = patterns[centerIndex][j];
+        }
+    }
+}
+
 void initialCenters( double patterns[][Nv], double centers[][Nv] ) {
 
     int centerIndex ;
@@ -154,17 +198,21 @@ void initialCenters( double patterns[][Nv], double centers[][Nv] ) {
     return ;
 }
 
-/*
- *
- *
- * Calculates the distance between patterns and centers,
- * then it finds the closest center for each pattern &
- * stores the index in the array named classes. Also
- * it calculates the error or the total distance
- * between the patterns and the closest mean-center.
- *
- *
- */
+void calculateDistanceAndAssignCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***distances) {
+    double error = 0.0;
+    size_t i, j;
+
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < Nc; j++)
+            (*distances)[i][j] = distEucl(patterns[i], centers[j]);
+
+        classes[i] = argMin((*distances)[i], Nc);
+        error += (*distances)[i][classes[i]];
+    }
+
+    printf("Total Error: %lf\n", error);
+}
+
 double findClosestCenters( double patterns[][Nv], double centers[][Nv], int classes[], double ***distances ) {
 
     double error = 0.0 ;
@@ -179,14 +227,27 @@ double findClosestCenters( double patterns[][Nv], double centers[][Nv], int clas
     return error;
 }
 
-/*
- *
- *
- * Finds the new means of each class using the patterns that
- * classified into this class.
- *
- *
- */
+void updateMeans(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z) {
+    size_t i, j;
+
+    // Calcul des nouvelles moyennes pour chaque classe
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < Nv; j++) {
+            (*y)[classes[i]][j] += patterns[i][j];
+            (*z)[classes[i]][j]++;
+        }
+    }
+
+    // Mise à jour des centres
+    for (i = 0; i < Nc; i++) {
+        for (j = 0; j < Nv; j++) {
+            centers[i][j] = (*y)[i][j] / (*z)[i][j];
+            (*y)[i][j] = 0.0;
+            (*z)[i][j] = 0.0;
+        }
+    }
+}
+
 void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z ) {
 
     double error = 0.0 ;
@@ -212,14 +273,16 @@ void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classe
     return ;
 }
 
-/*
- *
- *
- * Calclulates the Eucledean distance between a pattern
- * and a center.
- *
- *
- */
+double calculateEuclideanDistance(double pattern[], double center[]) {
+    double distance = 0.0;
+
+    for (int i = 0; i < Nv; i++) {
+        distance += (pattern[i] - center[i]) * (pattern[i] - center[i]);
+    }
+
+    return sqrt(distance);
+}
+
 double distEucl( double pattern[], double center[] ) {
 
     double distance = 0.0 ;
@@ -230,14 +293,20 @@ double distEucl( double pattern[], double center[] ) {
     return sqrt(distance) ;
 }
 
-/*
- *
- *
- * Finds the index of the minimum value of
- * an array with the current length.
- *
- *
- */
+int findMinIndex(double array[], int length) {
+    int index = 0;
+    double min = array[0];
+
+    for (int i = 1; i < length; i++) {
+        if (min > array[i]) {
+            index = i;
+            min = array[i];
+        }
+    }
+
+    return index;
+}
+
 int argMin( double array[], int length ) {
 
     int index = 0 ;
@@ -261,6 +330,7 @@ int argMin( double array[], int length ) {
  *
  *
  */
+
 void freeArray( double ***array, double *arrayData ) {
     
     free( arrayData ) ;
