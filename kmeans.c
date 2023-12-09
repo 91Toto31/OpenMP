@@ -48,8 +48,8 @@ int main(int argc, char *argv[]) {
     simpleLloydsAlgorithm(patterns, centers);
 
     // Libération de la mémoire allouée
-    freeArray((double ***)&patterns, patternData);
-    freeArray((double ***)&centers, centerData);
+    freeArray((double ***)&patterns, patternsData);
+    freeArray((double ***)&centers, centersData);
 
     return EXIT_SUCCESS;
 }
@@ -170,7 +170,7 @@ double *mallocArray( double ***array, int n, int m, int initialize ) {
 }
 
 
-oid selectRandomInitialCenters(double patterns[][Nv], double centers[][Nv]) {
+void selectRandomInitialCenters(double patterns[][Nv], double centers[][Nv]) {
     size_t i, j;
 
     for (i = 0; i < Nc; i++) {
