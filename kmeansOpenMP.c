@@ -137,43 +137,6 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     freeArray(&z, zData);
 }
 
-
-
-
-/*
- *
- *
- * Allocates memory for a 2D array ([n][m]) of double type.
- * It uses malloc so if you want to initialize data
- * use initialize value != 0.
- *
- *
- */
-double *mallocArray( double ***array, int n, int m, int initialize ) {
-
-    * array = (double **)malloc( n * sizeof(double *) ) ;
-    // avoid to fill heap with small memory allocations.
-    double *arrayData = malloc( n*m * sizeof(double) ) ;
-
-    if ( initialize != 0)
-        memset( arrayData, 0, n*m ) ;
-    
-    size_t i ;
-    for( i = 0; i < n; i++ )
-        (* array)[i] = arrayData + i*m ;
-    
-    return arrayData;
-}
-
-
-/*
- *
- *
- * Selects patterns (randomly) as initial centers,
- * different patterns used for each center.
- *
- *
- */
 void initialCenters( double patterns[][Nv], double centers[][Nv] ) {
 
     int centerIndex ;
@@ -190,17 +153,6 @@ void initialCenters( double patterns[][Nv], double centers[][Nv] ) {
     return ;
 }
 
-/*
- *
- *
- * Calculates the distance between patterns and centers,
- * then it finds the closest center for each pattern &
- * stores the index in the array named classes. Also
- * it calculates the error or the total distance
- * between the patterns and the closest mean-center.
- *
- *
- */
 double findClosestCenters( double patterns[][Nv], double centers[][Nv], int classes[], double ***distances ) {
 
     double error = 0.0 ;
