@@ -54,17 +54,27 @@ void createRandomVectors(double patterns[][Nv]) {
     }
 }
 
-double *mallocArray(double ****array, int n, int m, int initialize) {
-    *array = (double ***)malloc(n * sizeof(double **));
+double *mallocArray(double ***array, int n, int m, int initialize) {
+    *array = (double ***)malloc(n * sizeof(double *));
+    
+    if (*array == NULL) {
+        fprintf(stderr, "Memory allocation failed.\n");
+        exit(EXIT_FAILURE);
+    }
 
     double *arrayData = (double *)malloc(n * m * sizeof(double));
+
+    if (arrayData == NULL) {
+        fprintf(stderr, "Memory allocation failed.\n");
+        exit(EXIT_FAILURE);
+    }
 
     if (initialize != 0)
         memset(arrayData, 0, n * m * sizeof(double));
 
     size_t i;
     for (i = 0; i < n; i++)
-        (*array)[i] = (double **)arrayData + i * m;
+        (*array)[i] = arrayData + i * m;
 
     return arrayData;
 }
