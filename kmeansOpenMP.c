@@ -72,7 +72,7 @@ void createRandomVectors( double patterns[][Nv] ) {
  *
  *
  */
-void kMeans(double patterns[][Nv], double centers[][Nv]) {
+oid kMeans(double patterns[][Nv], double centers[][Nv]) {
     double error = INFINITY;
     double errorBefore;
     int step = 0;
@@ -80,7 +80,7 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     int *classes = (int *)malloc(N * sizeof(int));
     double **distances;
     double *distanceData = mallocArray(&distances, N, Nc, 0);
-    double **y, **z;
+    double ***y, ***z;
     double *yData = mallocArray(&y, Nc, Nv, 1);
     double *zData = mallocArray(&z, Nc, Nv, 1);
 
@@ -88,7 +88,8 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
 
     do {
         errorBefore = error;
-#pragma omp parallel for
+
+#pragma omp parallel for collapse(2)
         for (size_t i = 0; i < N; i++) {
             for (size_t j = 0; j < Nc; j++)
                 (*distances)[i][j] = distEucl(patterns[i], centers[j]);
@@ -102,14 +103,18 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
 #pragma omp parallel for collapse(2)
         for (size_t i = 0; i < Nc; i++) {
             for (size_t j = 0; j < Nv; j++) {
+                double tmp_y = 0.0;
+                double tmp_z = 0.0;
                 for (size_t k = 0; k < N; k++) {
                     if (classes[k] == i) {
-#pragma omp atomic
-                        (*y)[i][j] += patterns[k][j];
-#pragma omp atomic
-                        (*z)[i][j]++;
+                        tmp_y += patterns[k][j];
+                        tmp_z += 1.0;
                     }
                 }
+#pragma omp atomic
+                (*y)[i][j] += tmp_y;
+#pragma omp atomic
+                (*z)[i][j] += tmp_z;
             }
         }
 
@@ -132,6 +137,7 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     freeArray(&y, yData);
     freeArray(&z, zData);
 }
+
 
 /*
  *
