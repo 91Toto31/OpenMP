@@ -20,67 +20,69 @@
 #define Maxiters 15 // Maxiters is the maximum number of iterations
 #define Threshold 0.000001
 
-double *mallocArray( double ***array, int n, int m, int initialize ) ;
-void freeArray( double ***array, double *arrayData ) ;
+double *mallocArray(double ****array, int n, int m, int initialize);
+void freeArray(double ****array, double *arrayData);
 
-void kMeans( double patterns[][Nv], double centers[][Nv] ) ;
-void initialCenters( double patterns[][Nv], double centers[][Nv] ) ;
-double findClosestCenters( double patterns[][Nv], double centers[][Nv], int classes[], double ***distances ) ;
-void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z ) ;
+void kMeans(double patterns[][Nv], double centers[][Nv]);
+void initialCenters(double patterns[][Nv], double centers[][Nv]);
+double findClosestCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ****distances);
+void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ****y, double ****z);
 
-double distEucl( double pattern[], double center[] ) ;
-int argMin( double array[], int length ) ;
+double distEucl(double pattern[], double center[]);
+int argMin(double array[], int length);
 
-void createRandomVectors( double patterns[][Nv] ) ;
+void createRandomVectors(double patterns[][Nv]);
 
-int main( int argc, char *argv[] ) {
+int main(int argc, char *argv[]) {
+    static double patterns[N][Nv];
+    static double centers[Nc][Nv];
 
-	static double patterns[N][Nv] ;
-	static double centers[Nc][Nv] ;
+    createRandomVectors(patterns);
+    kMeans(patterns, centers);
 
-	createRandomVectors( patterns ) ;
-	kMeans( patterns, centers ) ;
-
-    return EXIT_SUCCESS;    
+    return EXIT_SUCCESS;
 }
 
-/*
- *
- *
- * Create some random patterns for classification.
- * 
- * 
- */
-void createRandomVectors( double patterns[][Nv] ) {
+void createRandomVectors(double patterns[][Nv]) {
+    srand(1059364);
 
-	srand( 1059364 ) ;
-
-	size_t i, j ;
-	for ( i = 0; i < N; i++ ) {
-		for ( j = 0; j < Nv; j++ ) {
-			patterns[i][j] = (double) (random()%100) - 0.1059364*(i+j) ;
-		}
-	}
-
-	return ;
+    size_t i, j;
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < Nv; j++) {
+            patterns[i][j] = (double)(random() % 100) - 0.1059364 * (i + j);
+        }
+    }
 }
 
-/*
- *
- *
- * Simple implementations of Lloyd's Algorithm
- *
- *
- */
+double *mallocArray(double ****array, int n, int m, int initialize) {
+    *array = (double ***)malloc(n * sizeof(double **));
+
+    double *arrayData = (double *)malloc(n * m * sizeof(double));
+
+    if (initialize != 0)
+        memset(arrayData, 0, n * m);
+
+    size_t i;
+    for (i = 0; i < n; i++)
+        (*array)[i] = (double **)arrayData + i * m;
+
+    return arrayData;
+}
+
+void freeArray(double ****array, double *arrayData) {
+    free(arrayData);
+    free(*array);
+}
+
 void kMeans(double patterns[][Nv], double centers[][Nv]) {
     double error = INFINITY;
     double errorBefore;
     int step = 0;
 
     int *classes = (int *)malloc(N * sizeof(int));
-    double **distances;
+    double ***distances;
     double *distanceData = mallocArray(&distances, N, Nc, 0);
-    double ***y, ***z;
+    double ****y, ****z;
     double *yData = mallocArray(&y, Nc, Nv, 1);
     double *zData = mallocArray(&z, Nc, Nv, 1);
 
@@ -88,7 +90,6 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
 
     do {
         errorBefore = error;
-
 #pragma omp parallel for collapse(2)
         for (size_t i = 0; i < N; i++) {
             for (size_t j = 0; j < Nc; j++)
@@ -99,7 +100,6 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
 
         error = findClosestCenters(patterns, centers, classes, &distances);
 
-        // Recalculate centers in parallel
 #pragma omp parallel for collapse(2)
         for (size_t i = 0; i < Nc; i++) {
             for (size_t j = 0; j < Nv; j++) {
@@ -118,7 +118,6 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
             }
         }
 
-        // Update centers
 #pragma omp parallel for collapse(2)
         for (size_t i = 0; i < Nc; i++) {
             for (size_t j = 0; j < Nv; j++) {
@@ -137,6 +136,7 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     freeArray(&y, yData);
     freeArray(&z, zData);
 }
+
 
 
 /*
