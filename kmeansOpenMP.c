@@ -87,53 +87,55 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     double **z;         // Change to double **
     double *zData = mallocArray(&z, Nc, Nv, 1);
 
+    size_t j;  // Déclarer j à ce niveau
+
     initialCenters(patterns, centers);
 
     do {
-    errorBefore = error;
+        errorBefore = error;
 
-    #pragma omp parallel for private(j) shared(N, Nc, patterns, centers, distances, classes) reduction(+:error) firstprivate(error)
-    for (size_t i = 0; i < N; i++) {
-        for (j = 0; j < Nc; j++) {
-            distances[i][j] = distEucl(patterns[i], centers[j]);
-        }
-        classes[i] = argMin(distances[i], Nc);
-        #pragma omp atomic
-        error += distances[i][classes[i]];
-    }
-
-    error = findClosestCenters(patterns, centers, classes, &distances);
-
-    #pragma omp parallel for collapse(2)
-    for (size_t i = 0; i < Nc; i++) {
-        for (size_t j = 0; j < Nv; j++) {
-            double tmp_y = 0.0;
-            double tmp_z = 0.0;
-            for (size_t k = 0; k < N; k++) {
-                if (classes[k] == i) {
-                    tmp_y += patterns[k][j];
-                    tmp_z += 1.0;
-                }
+#pragma omp parallel for private(j) shared(N, Nc, patterns, centers, distances, classes) reduction(+:error) firstprivate(error)
+        for (size_t i = 0; i < N; i++) {
+            for (j = 0; j < Nc; j++) {
+                distances[i][j] = distEucl(patterns[i], centers[j]);
             }
+            classes[i] = argMin(distances[i], Nc);
             #pragma omp atomic
-            y[i][j] += tmp_y;
-            #pragma omp atomic
-            z[i][j] += tmp_z;
+            error += distances[i][classes[i]];
         }
-    }
 
-    #pragma omp parallel for collapse(2)
-    for (size_t i = 0; i < Nc; i++) {
-        for (size_t j = 0; j < Nv; j++) {
-            centers[i][j] = y[i][j] / z[i][j];
-            y[i][j] = 0.0;
-            z[i][j] = 0.0;
+        error = findClosestCenters(patterns, centers, classes, &distances);
+
+#pragma omp parallel for collapse(2)
+        for (size_t i = 0; i < Nc; i++) {
+            for (j = 0; j < Nv; j++) {
+                double tmp_y = 0.0;
+                double tmp_z = 0.0;
+                for (size_t k = 0; k < N; k++) {
+                    if (classes[k] == i) {
+                        tmp_y += patterns[k][j];
+                        tmp_z += 1.0;
+                    }
+                }
+                #pragma omp atomic
+                y[i][j] += tmp_y;
+                #pragma omp atomic
+                z[i][j] += tmp_z;
+            }
         }
-    }
 
-    printf("Step:%d||Error:%lf,\n", step, error);
-    step++;
-} while ((step < Maxiters) && (errorBefore - error > Threshold));
+#pragma omp parallel for collapse(2)
+        for (size_t i = 0; i < Nc; i++) {
+            for (j = 0; j < Nv; j++) {
+                centers[i][j] = y[i][j] / z[i][j];
+                y[i][j] = 0.0;
+                z[i][j] = 0.0;
+            }
+        }
+
+        printf("Step:%d||Error:%lf,\n", step, error);
+        step++;
+    } while ((step < Maxiters) && (errorBefore - error > Threshold));
 
     free(classes);
     freeArray(&distances, distanceData);
