@@ -90,11 +90,13 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
 
     do {
         errorBefore = error;
-#pragma omp parallel for collapse(2)
-        for (size_t i = 0; i < N; i++) {
-            for (size_t j = 0; j < Nc; j++)
-                (*distances)[i][j] = distEucl(patterns[i], centers[j]);
 
+#pragma omp parallel for
+        for (size_t i = 0; i < N; i++) {
+            // Parallelize only the outer loop
+            for (size_t j = 0; j < Nc; j++) {
+                (*distances)[i][j] = distEucl(patterns[i], centers[j]);
+            }
             classes[i] = argMin((*distances)[i], Nc);
         }
 
