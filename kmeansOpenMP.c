@@ -72,7 +72,7 @@ void createRandomVectors( double patterns[][Nv] ) {
  *
  *
  */
-oid kMeans(double patterns[][Nv], double centers[][Nv]) {
+void kMeans(double patterns[][Nv], double centers[][Nv]) {
     double error = INFINITY;
     double errorBefore;
     int step = 0;
