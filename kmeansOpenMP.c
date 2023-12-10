@@ -80,10 +80,11 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     int step = 0;
 
     int *classes = (int *)malloc(N * sizeof(int));
-    double ***distances;
+    double **distances;  // Change to double **
     double *distanceData = mallocArray(&distances, N, Nc, 0);
-    double ***y, ***z;
+    double **y;         // Change to double **
     double *yData = mallocArray(&y, Nc, Nv, 1);
+    double **z;         // Change to double **
     double *zData = mallocArray(&z, Nc, Nv, 1);
 
     initialCenters(patterns, centers);
@@ -95,12 +96,12 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
         for (size_t i = 0; i < N; i++) {
             // Parallelize only the outer loop
             for (size_t j = 0; j < Nc; j++) {
-                (*distances)[i][j] = distEucl(patterns[i], centers[j]);
+                distances[i][j] = distEucl(patterns[i], centers[j]);
             }
-            classes[i] = argMin((*distances)[i], Nc);
+            classes[i] = argMin(distances[i], Nc);
         }
 
-        error = findClosestCenters(patterns, centers, classes, distances);
+        error = findClosestCenters(patterns, centers, classes, &distances);
 
 #pragma omp parallel for collapse(2)
         for (size_t i = 0; i < Nc; i++) {
@@ -114,18 +115,18 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
                     }
                 }
 #pragma omp atomic
-                (*y)[i][j] += tmp_y;
+                y[i][j] += tmp_y;
 #pragma omp atomic
-                (*z)[i][j] += tmp_z;
+                z[i][j] += tmp_z;
             }
         }
 
 #pragma omp parallel for collapse(2)
         for (size_t i = 0; i < Nc; i++) {
             for (size_t j = 0; j < Nv; j++) {
-                centers[i][j] = (*y)[i][j] / (*z)[i][j];
-                (*y)[i][j] = 0.0;
-                (*z)[i][j] = 0.0;
+                centers[i][j] = y[i][j] / z[i][j];
+                y[i][j] = 0.0;
+                z[i][j] = 0.0;
             }
         }
 
@@ -197,5 +198,6 @@ int argMin(double array[], int length) {
     }
     return index;
 }
+
 
 
