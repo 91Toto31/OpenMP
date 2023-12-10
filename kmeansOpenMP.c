@@ -20,13 +20,13 @@
 #define Maxiters 15 // Maxiters is the maximum number of iterations
 #define Threshold 0.000001
 
-double *mallocArray(double ****array, int n, int m, int initialize);
-void freeArray(double ****array, double *arrayData);
+double *mallocArray(double ***array, int n, int m, int initialize);
+void freeArray(double ***array, double *arrayData);
 
 void kMeans(double patterns[][Nv], double centers[][Nv]);
 void initialCenters(double patterns[][Nv], double centers[][Nv]);
-double findClosestCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ****distances);
-void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ****y, double ****z);
+double findClosestCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***distances);
+void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z);
 
 double distEucl(double pattern[], double center[]);
 int argMin(double array[], int length);
@@ -54,22 +54,22 @@ void createRandomVectors(double patterns[][Nv]) {
     }
 }
 
-double *mallocArray(double ****array, int n, int m, int initialize) {
-    *array = (double ***)malloc(n * sizeof(double **));
+double *mallocArray(double ***array, int n, int m, int initialize) {
+    *array = (double **)malloc(n * sizeof(double *));
 
     double *arrayData = (double *)malloc(n * m * sizeof(double));
 
     if (initialize != 0)
-        memset(arrayData, 0, n * m);
+        memset(arrayData, 0, n * m * sizeof(double));
 
     size_t i;
     for (i = 0; i < n; i++)
-        (*array)[i] = (double **)arrayData + i * m;
+        (*array)[i] = arrayData + i * m;
 
     return arrayData;
 }
 
-void freeArray(double ****array, double *arrayData) {
+void freeArray(double ***array, double *arrayData) {
     free(arrayData);
     free(*array);
 }
@@ -82,7 +82,7 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     int *classes = (int *)malloc(N * sizeof(int));
     double ***distances;
     double *distanceData = mallocArray(&distances, N, Nc, 0);
-    double ****y, ****z;
+    double ***y, ***z;
     double *yData = mallocArray(&y, Nc, Nv, 1);
     double *zData = mallocArray(&z, Nc, Nv, 1);
 
