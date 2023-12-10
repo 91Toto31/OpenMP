@@ -15,13 +15,13 @@
 #include <omp.h>
 
 #define N 100000 // N is the number of patterns
-#define Nc 100 // Nc is the number of classes or centers
-#define Nv 1000 // Nv is the length of each pattern (vector)
-#define Maxiters 15 // Maxiters is the maximum number of iterations
+#define Nc 100    // Nc is the number of classes or centers
+#define Nv 1000   // Nv is the length of each pattern (vector)
+#define Maxiters 15    // Maxiters is the maximum number of iterations
 #define Threshold 0.000001
 
-double *mallocArray(double ****array, int n, int m, int initialize);
-void freeArray(double ****array, double *arrayData);
+double *mallocArray(double ***array, int n, int m, int initialize);
+void freeArray(double ***array, double *arrayData);
 
 void kMeans(double patterns[][Nv], double centers[][Nv]);
 void initialCenters(double patterns[][Nv], double centers[][Nv]);
@@ -55,19 +55,9 @@ void createRandomVectors(double patterns[][Nv]) {
 }
 
 double *mallocArray(double ***array, int n, int m, int initialize) {
-    *array = (double ***)malloc(n * sizeof(double *));
-    
-    if (*array == NULL) {
-        fprintf(stderr, "Memory allocation failed.\n");
-        exit(EXIT_FAILURE);
-    }
+    *array = (double **)malloc(n * sizeof(double *));
 
     double *arrayData = (double *)malloc(n * m * sizeof(double));
-
-    if (arrayData == NULL) {
-        fprintf(stderr, "Memory allocation failed.\n");
-        exit(EXIT_FAILURE);
-    }
 
     if (initialize != 0)
         memset(arrayData, 0, n * m * sizeof(double));
@@ -79,7 +69,7 @@ double *mallocArray(double ***array, int n, int m, int initialize) {
     return arrayData;
 }
 
-void freeArray(double ****array, double *arrayData) {
+void freeArray(double ***array, double *arrayData) {
     free(arrayData);
     free(*array);
 }
@@ -149,108 +139,63 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     freeArray(&z, zData);
 }
 
-void initialCenters( double patterns[][Nv], double centers[][Nv] ) {
-
-    int centerIndex ;
-    size_t i, j ;
-    for ( i = 0; i < Nc; i++ ) {
-        // split patterns in Nc blocks of N/Nc length
-        // use rand and % to pick a random number of each block.
-        centerIndex = rand()%( N/Nc*(i+1) - N/Nc*i + 1 ) + N/Nc*i ;
-        for ( j = 0; j < Nv; j ++ ) {
-            centers[i][j] = patterns[centerIndex][j] ;
+void initialCenters(double patterns[][Nv], double centers[][Nv]) {
+    int centerIndex;
+    size_t i, j;
+    for (i = 0; i < Nc; i++) {
+        centerIndex = rand() % (N / Nc * (i + 1) - N / Nc * i + 1) + N / Nc * i;
+        for (j = 0; j < Nv; j++) {
+            centers[i][j] = patterns[centerIndex][j];
         }
     }
-
-    return ;
 }
 
-double findClosestCenters( double patterns[][Nv], double centers[][Nv], int classes[], double ***distances ) {
-
-    double error = 0.0 ;
-    size_t i, j ;
-    for ( i = 0; i < N; i++ ) {
-        for ( j = 0; j < Nc; j++ )
-            (* distances)[i][j] = distEucl( patterns[i], centers[j] ) ;
-        classes[i] = argMin( (* distances)[i], Nc ) ;
-        error += (* distances)[i][classes[i]] ;
+double findClosestCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***distances) {
+    double error = 0.0;
+    size_t i, j;
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < Nc; j++)
+            (*distances)[i][j] = distEucl(patterns[i], centers[j]);
+        classes[i] = argMin((*distances)[i], Nc);
+        error += (*distances)[i][classes[i]];
     }
-
     return error;
 }
 
-/*
- *
- *
- * Finds the new means of each class using the patterns that
- * classified into this class.
- *
- *
- */
-void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z ) {
-
-    double error = 0.0 ;
-
+void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z) {
     size_t i, j;
-    // calculate tmp arrays
-    for ( i = 0; i < N; i++ ) {
-        for ( j = 0; j < Nv; j++ ) {
-            (* y)[classes[i]][j] += patterns[i][j] ;
-            (* z)[classes[i]][j] ++ ;
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < Nv; j++) {
+            (*y)[classes[i]][j] += patterns[i][j];
+            (*z)[classes[i]][j]++;
         }
     }
-
-    // update step of centers
-    for ( i = 0; i < Nc; i++ ) {
-        for ( j = 0; j < Nv; j++ ) {
-            centers[i][j] = (* y)[i][j]/(* z)[i][j] ;
-            (* y)[i][j] = 0.0 ;
-            (* z)[i][j] = 0.0 ;
+    for (i = 0; i < Nc; i++) {
+        for (j = 0; j < Nv; j++) {
+            centers[i][j] = (*y)[i][j] / (*z)[i][j];
+            (*y)[i][j] = 0.0;
+            (*z)[i][j] = 0.0;
         }
     }
-    
-    return ;
 }
 
-/*
- *
- *
- * Calclulates the Eucledean distance between a pattern
- * and a center.
- *
- *
- */
-double distEucl( double pattern[], double center[] ) {
-
-    double distance = 0.0 ;
-
-    for ( int i = 0; i < Nv; i++ )
-        distance += ( pattern[i]-center[i] )*( pattern[i]-center[i] ) ;
-    
-    return sqrt(distance) ;
+double distEucl(double pattern[], double center[]) {
+    double distance = 0.0;
+    for (int i = 0; i < Nv; i++)
+        distance += (pattern[i] - center[i]) * (pattern[i] - center[i]);
+    return sqrt(distance);
 }
 
-/*
- *
- *
- * Finds the index of the minimum value of
- * an array with the current length.
- *
- *
- */
-int argMin( double array[], int length ) {
-
-    int index = 0 ;
-    double min = array[0] ;
-
-    for ( int i = 1; i < length; i++ ) {
-        if ( min > array[i] ) {
-            index = i ;
-            min = array[i] ;
+int argMin(double array[], int length) {
+    int index = 0;
+    double min = array[0];
+    for (int i = 1; i < length; i++) {
+        if (min > array[i]) {
+            index = i;
+            min = array[i];
         }
     }
-
-    return index ;
+    return index;
 }
 
 
