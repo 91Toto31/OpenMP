@@ -289,18 +289,4 @@ int argMin( double array[], int length ) {
     return index ;
 }
 
-/*
- *
- *
- * Free memory of a 2D array of double type.
- * Memory allocated with the function mallocArray().
- *
- *
- */
-void freeArray( double ***array, double *arrayData ) {
-    
-    free( arrayData ) ;
-    free( * array ) ;
 
-    return ;
-}
