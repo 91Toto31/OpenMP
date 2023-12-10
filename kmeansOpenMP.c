@@ -20,8 +20,8 @@
 #define Maxiters 15 // Maxiters is the maximum number of iterations
 #define Threshold 0.000001
 
-double *mallocArray(double ***array, int n, int m, int initialize);
-void freeArray(double ***array, double *arrayData);
+double *mallocArray(double ****array, int n, int m, int initialize);
+void freeArray(double ****array, double *arrayData);
 
 void kMeans(double patterns[][Nv], double centers[][Nv]);
 void initialCenters(double patterns[][Nv], double centers[][Nv]);
@@ -54,8 +54,8 @@ void createRandomVectors(double patterns[][Nv]) {
     }
 }
 
-double *mallocArray(double ***array, int n, int m, int initialize) {
-    *array = (double **)malloc(n * sizeof(double *));
+double *mallocArray(double ****array, int n, int m, int initialize) {
+    *array = (double ***)malloc(n * sizeof(double **));
 
     double *arrayData = (double *)malloc(n * m * sizeof(double));
 
@@ -64,12 +64,12 @@ double *mallocArray(double ***array, int n, int m, int initialize) {
 
     size_t i;
     for (i = 0; i < n; i++)
-        (*array)[i] = arrayData + i * m;
+        (*array)[i] = (double **)arrayData + i * m;
 
     return arrayData;
 }
 
-void freeArray(double ***array, double *arrayData) {
+void freeArray(double ****array, double *arrayData) {
     free(arrayData);
     free(*array);
 }
@@ -98,7 +98,7 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
             classes[i] = argMin((*distances)[i], Nc);
         }
 
-        error = findClosestCenters(patterns, centers, classes, &distances);
+        error = findClosestCenters(patterns, centers, classes, distances);
 
 #pragma omp parallel for collapse(2)
         for (size_t i = 0; i < Nc; i++) {
@@ -136,6 +136,7 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     freeArray(&y, yData);
     freeArray(&z, zData);
 }
+
 
 
 
