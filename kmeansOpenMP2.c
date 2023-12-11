@@ -122,7 +122,7 @@ double findClosestCenters(double patterns[][Nv], double centers[][Nv], int class
     return error;
 }
 
-void recalculateCenters(double patterns[][Nv], double centers[][Nv], int *classes, double ***y, double ***z) {
+void recalculateCenters(int Np, double patterns[][Nv], double centers[][Nv], int *classes, double ***y, double ***z) {
     // Créer un tableau local pour stocker le nombre de points dans chaque cluster
     int *numPoints = malloc(Nc * sizeof(int));
     if (numPoints == NULL) {
@@ -161,7 +161,6 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int *classe
     // Libérer la mémoire du tableau numPoints
     free(numPoints);
 }
-
 
 void kMeans(double patterns[][Nv], double centers[][Nv]) {
     double error = INFINITY;
