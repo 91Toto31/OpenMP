@@ -42,6 +42,10 @@ int main(int argc, char *argv[]) {
     double *yData = mallocArray(&y, Nc, Nv, 1);
     double **z;
     double *zData = mallocArray(&z, Nc, Nv, 1);
+    double **distances;  // Ajout de cette ligne pour déclarer distances
+    double *distanceData = mallocArray(&distances, N, Nc, 0);  // Ajout de cette ligne pour déclarer distanceData
+
+    // ... (votre code précédent)
 
 
     createRandomVectors(patterns);
@@ -186,7 +190,7 @@ double findClosestCenters(double patterns[][Nv], double centers[][Nv], int class
 }
 
 
-oid recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z) {
+void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z) {
     size_t i, j;
 
 #pragma omp parallel for collapse(2)
