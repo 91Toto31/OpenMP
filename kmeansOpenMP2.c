@@ -202,34 +202,7 @@ double findClosestCenters(double patterns[][Nv], double centers[][Nv], int class
 }
 
 
-int argMin(double array[], int length) {
-    int global_index = 0;
-    double global_min = array[0];
 
-#pragma omp parallel
-    {
-        int private_index = 0;
-        double private_min = array[0];
-
-#pragma omp for schedule(static)
-        for (int i = 1; i < length; i++) {
-            if (private_min > array[i]) {
-                private_index = i;
-                private_min = array[i];
-            }
-        }
-
-#pragma omp critical
-        {
-            if (global_min > private_min) {
-                global_index = private_index;
-                global_min = private_min;
-            }
-        }
-    }
-
-    return global_index;
-}
 
 
 double distEucl(double pattern[], double center[]) {
