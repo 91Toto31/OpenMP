@@ -17,16 +17,17 @@ struct KMeansArgs {
 };
 
 void freeArray(double ***array, double *arrayData) {
+    // Libération de la mémoire allouée pour les données du tableau
     free(arrayData);
 
+    // Libération de chaque ligne du tableau
 #pragma omp parallel for
     for (int i = 0; i < Nc; i++) {
         free((*array)[i]);
     }
 
+    // Libération de la mémoire allouée pour les pointeurs de ligne
     free(*array);
-
-    return;
 }
 
 double *mallocArray(double ***array, int n, int m, int initialize) {
@@ -54,10 +55,12 @@ void createRandomVectors(double patterns[][Nv]) {
 #pragma omp parallel for
     for (size_t i = 0; i < N; i++) {
         for (size_t j = 0; j < Nv; j++) {
-            patterns[i][j] = (double)(rand() % 100) - 0.1059364 * (i + j);
+            // Modification pour éviter le même nombre aléatoire dans chaque itération
+            patterns[i][j] = (double)(rand() % 100) - 0.1059364 * (i + j + 1);
         }
     }
 }
+
 
 double distEucl(double pattern[], double center[]) {
     double distance = 0.0;
@@ -206,17 +209,18 @@ int main(int argc, char *argv[]) {
     static double patterns[N][Nv];
     static double centers[Nc][Nv];
     int *classes = (int *)malloc(N * sizeof(int));
-    double **y;
+    double **y, **z;
     double *yData = mallocArray(&y, Nc, Nv, 1);
-    double **z;
     double *zData = mallocArray(&z, Nc, Nv, 1);
     double **distances;
     double *distanceData = mallocArray(&distances, N, Nc, 0);
 
+    // Allocation dynamique des tableaux dans la structure KMeansArgs
     struct KMeansArgs kmeansArgs;
     kmeansArgs.patterns = malloc(N * sizeof(double[Nv]));
     kmeansArgs.centers = malloc(Nc * sizeof(double[Nv]));
 
+    // Vérifiez si l'allocation a réussi
     if (kmeansArgs.patterns == NULL || kmeansArgs.centers == NULL) {
         fprintf(stderr, "Erreur d'allocation mémoire\n");
         exit(EXIT_FAILURE);
@@ -228,6 +232,7 @@ int main(int argc, char *argv[]) {
     double errorBefore;
     int step = 0;
 
+    // Copie des données dans la structure
     memcpy(kmeansArgs.patterns, patterns, N * sizeof(double[Nv]));
     memcpy(kmeansArgs.centers, centers, Nc * sizeof(double[Nv]));
 
@@ -243,21 +248,29 @@ int main(int argc, char *argv[]) {
             recalculateCenters(patterns, centers, classes, &y, &z);
         }
 
-#pragma omp single
-        {
-            printf("Step:%d||Error:%lf,\n", step, (errorBefore - error) / error);
-            step++;
-        }
+#pragma omp master
+{
+    if (error != 0.0) {
+        printf("Step:%d||Error:%lf,\n", step, (errorBefore - error) / error);
+    } else {
+        // Cas où error est égal à zéro, évitons la division par zéro
+        printf("Step:%d||Error: N/A (error is zero),\n", step);
+    }
+    step++;
+}
 
-    } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
+} while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
 
-    free(classes);
-    freeArray(&distances, distanceData);
-    freeArray(&y, yData);
-    freeArray(&z, zData);
-    free(kmeansArgs.patterns);
-    free(kmeansArgs.centers);
+// Libération de la mémoire allouée dynamiquement
+free(classes);
+freeArray(&distances, distanceData);
+freeArray(&y, yData);
+freeArray(&z, zData);
 
-    return EXIT_SUCCESS;
+// Libération de la mémoire allouée pour les tableaux dans la structure KMeansArgs
+free(kmeansArgs.patterns);
+free(kmeansArgs.centers);
+
+return EXIT_SUCCESS;
 }
 
