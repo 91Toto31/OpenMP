@@ -16,18 +16,9 @@ struct KMeansArgs {
     double (*centers)[Nv];
 };
 
-void freeArray(double ***array, double *arrayData) {
-    // Libération de la mémoire allouée pour les données du tableau
-    free(arrayData);
-
-    // Libération de chaque ligne du tableau
-#pragma omp parallel for
-    for (int i = 0; i < Nc; i++) {
-        free((*array)[i]);
-    }
-
-    // Libération de la mémoire allouée pour les pointeurs de ligne
-    free(*array);
+void freeArray(double ***array, double *data) {
+    free(data);
+    *array = NULL;
 }
 
 double *mallocArray(double ***array, int n, int m, int initialize) {
@@ -131,32 +122,46 @@ double findClosestCenters(double patterns[][Nv], double centers[][Nv], int class
     return error;
 }
 
-void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z) {
-    size_t i, j;
+void recalculateCenters(double patterns[][Nv], double centers[][Nv], int *classes, double ***y, double ***z) {
+    // Créer un tableau local pour stocker le nombre de points dans chaque cluster
+    int *numPoints = malloc(Nc * sizeof(int));
+    if (numPoints == NULL) {
+        fprintf(stderr, "Error: Unable to allocate memory for numPoints.\n");
+        exit(EXIT_FAILURE);
+    }
 
-#pragma omp parallel for collapse(2)
-    for (i = 0; i < N; i++) {
-        for (j = 0; j < Nv; j++) {
-#pragma omp atomic
-            (*y)[classes[i]][j] += patterns[i][j];
-#pragma omp atomic
-            (*z)[classes[i]][j]++;
+    // Initialiser le tableau numPoints à zéro
+    #pragma omp parallel for
+    for (int j = 0; j < Nc; j++) {
+        numPoints[j] = 0;
+    }
+
+    // Somme des coordonnées des points pour chaque cluster
+    #pragma omp parallel for
+    for (int i = 0; i < Np; i++) {
+        int cluster = classes[i];
+        #pragma omp atomic
+        numPoints[cluster]++;
+        for (int k = 0; k < Nv; k++) {
+            #pragma omp atomic
+            (*y)[cluster][k] += patterns[i][k];
         }
     }
 
-#pragma omp parallel for collapse(2)
-    for (i = 0; i < Nc; i++) {
-        for (j = 0; j < Nv; j++) {
-            centers[i][j] = (*y)[i][j] / (*z)[i][j];
-
-#pragma omp critical
-            {
-                (*y)[i][j] = 0.0;
-                (*z)[i][j] = 0.0;
+    // Calculer le nouveau centre pour chaque cluster
+    #pragma omp parallel for
+    for (int j = 0; j < Nc; j++) {
+        if (numPoints[j] > 0) {
+            for (int k = 0; k < Nv; k++) {
+                (*z)[j][k] = (*y)[j][k] / numPoints[j];
             }
         }
     }
+
+    // Libérer la mémoire du tableau numPoints
+    free(numPoints);
 }
+
 
 void kMeans(double patterns[][Nv], double centers[][Nv]) {
     double error = INFINITY;
