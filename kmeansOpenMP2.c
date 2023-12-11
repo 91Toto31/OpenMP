@@ -202,39 +202,43 @@ double findClosestCenters(double patterns[][Nv], double centers[][Nv], int class
 }
 
 
-void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z) {
-    size_t i, j;
+int argMin(double array[], int length) {
+    int global_index = 0;
+    double global_min = array[0];
 
-#pragma omp parallel for collapse(2)
-    for (i = 0; i < N; i++) {
-        for (j = 0; j < Nv; j++) {
-#pragma omp atomic
-            (*y)[classes[i]][j] += patterns[i][j];
-#pragma omp atomic
-            (*z)[classes[i]][j]++;
+#pragma omp parallel
+    {
+        int private_index = 0;
+        double private_min = array[0];
+
+#pragma omp for schedule(static)
+        for (int i = 1; i < length; i++) {
+            if (private_min > array[i]) {
+                private_index = i;
+                private_min = array[i];
+            }
         }
-    }
-
-#pragma omp parallel for collapse(2)
-    for (i = 0; i < Nc; i++) {
-        for (j = 0; j < Nv; j++) {
-            centers[i][j] = (*y)[i][j] / (*z)[i][j];
 
 #pragma omp critical
-            {
-                (*y)[i][j] = 0.0;
-                (*z)[i][j] = 0.0;
+        {
+            if (global_min > private_min) {
+                global_index = private_index;
+                global_min = private_min;
             }
         }
     }
+
+    return global_index;
 }
+
 
 double distEucl(double pattern[], double center[]) {
     double distance = 0.0;
 
-#pragma omp parallel for reduction(+:distance)
+#pragma omp parallel for reduction(+:distance) schedule(static)
     for (int i = 0; i < Nv; i++) {
-        distance += (pattern[i] - center[i]) * (pattern[i] - center[i]);
+        double diff = pattern[i] - center[i];
+        distance += diff * diff;
     }
 
     return sqrt(distance);
@@ -249,7 +253,7 @@ int argMin(double array[], int length) {
         int private_index = 0;
         double private_min = array[0];
 
-#pragma omp for
+#pragma omp for schedule(static)
         for (int i = 1; i < length; i++) {
             if (private_min > array[i]) {
                 private_index = i;
