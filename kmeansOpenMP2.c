@@ -122,43 +122,35 @@ double findClosestCenters(double patterns[][Nv], double centers[][Nv], int class
     return error;
 }
 
-void recalculateCenters(int Np, double patterns[][Nv], double centers[][Nv], int *classes, double ***y, double ***z) {
-    // Créer un tableau local pour stocker le nombre de points dans chaque cluster
-    int *numPoints = malloc(Nc * sizeof(int));
-    if (numPoints == NULL) {
-        fprintf(stderr, "Error: Unable to allocate memory for numPoints.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    // Initialiser le tableau numPoints à zéro
+void recalculateCenters(int Np, double patterns[][Nv], double centers[][Nv], int *classes, double (*y)[Nv], double (*z)[Nv]) {
     #pragma omp parallel for
-    for (int j = 0; j < Nc; j++) {
-        numPoints[j] = 0;
+    for (int i = 0; i < Nc; i++) {
+        for (int j = 0; j < Nv; j++) {
+            y[i][j] = 0.0;
+            z[i][j] = 0.0;
+        }
     }
 
-    // Somme des coordonnées des points pour chaque cluster
     #pragma omp parallel for
     for (int i = 0; i < Np; i++) {
         int cluster = classes[i];
-        #pragma omp atomic
-        numPoints[cluster]++;
-        for (int k = 0; k < Nv; k++) {
+        #pragma omp parallel for
+        for (int j = 0; j < Nv; j++) {
             #pragma omp atomic
-            (*y)[cluster][k] += patterns[i][k];
+            y[cluster][j] += patterns[i][j];
+            #pragma omp atomic
+            z[cluster][j] += 1.0;
         }
     }
 
-    // Calculer le nouveau centre pour chaque cluster
-   #pragma omp parallel for
+    #pragma omp parallel for
     for (int i = 0; i < Nc; i++) {
         for (int j = 0; j < Nv; j++) {
-            centers[i][j] = y[i][j] / z[i][j];
+            if (z[i][j] != 0) {
+                centers[i][j] = y[i][j] / z[i][j];
+            }
         }
     }
-}
-
-    // Libérer la mémoire du tableau numPoints
-    free(numPoints);
 }
 
 void kMeans(double patterns[][Nv], double centers[][Nv]) {
