@@ -149,14 +149,13 @@ void recalculateCenters(int Np, double patterns[][Nv], double centers[][Nv], int
     }
 
     // Calculer le nouveau centre pour chaque cluster
-    #pragma omp parallel for
-    for (int j = 0; j < Nc; j++) {
-        if (numPoints[j] > 0) {
-            for (int k = 0; k < Nv; k++) {
-                (*z)[j][k] = (*y)[j][k] / numPoints[j];
-            }
+   #pragma omp parallel for
+    for (int i = 0; i < Nc; i++) {
+        for (int j = 0; j < Nv; j++) {
+            centers[i][j] = y[i][j] / z[i][j];
         }
     }
+}
 
     // Libérer la mémoire du tableau numPoints
     free(numPoints);
