@@ -152,10 +152,8 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
 
     int *classes = (int *)malloc(N * sizeof(int));
     double distances[N][Nc];
-    double *yData = mallocArray(Nc, Nv, 1);
-    double *zData = mallocArray(Nc, Nv, 1);
-    double (*y)[Nv] = (double (*)[Nv])yData;
-    double (*z)[Nv] = (double (*)[Nv])zData;
+    double (*y)[Nv] = (double (*)[Nv])mallocArray(Nc, Nv, 1);
+    double (*z)[Nv] = (double (*)[Nv])mallocArray(Nc, Nv, 1);
 
     initialCenters(patterns, centers);
 
@@ -182,8 +180,8 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
 
     free(classes);
-    freeArray(yData);
-    freeArray(zData);
+    freeArray((double *)y);
+    freeArray((double *)z);
 }
 
 void kMeansWrapper(void *args) {
@@ -211,8 +209,8 @@ int main(int argc, char *argv[]) {
     kMeansWrapper(&kmeansArgs);
 
     // Libération de la mémoire allouée dynamiquement
-    freeArray(kmeansArgs.patterns);
-    freeArray(kmeansArgs.centers);
+    freeArray((double *)kmeansArgs.patterns);
+    freeArray((double *)kmeansArgs.centers);
 
     return EXIT_SUCCESS;
 }
