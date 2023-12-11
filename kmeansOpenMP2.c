@@ -16,28 +16,21 @@ struct KMeansArgs {
     double (*centers)[Nv];
 };
 
-void freeArray(double **array, double *data) {
-    free(data);
-    *array = NULL;
+void freeArray(double *array) {
+    free(array);
 }
 
-double *mallocArray(double ***array, int n, int m, int initialize) {
-    *array = (double **)malloc(n * sizeof(double *));
-    double *arrayData = (double *)malloc(n * m * sizeof(double));
+double *mallocArray(int n, int m, int initialize) {
+    double *array = (double *)malloc(n * m * sizeof(double));
 
     if (initialize != 0) {
 #pragma omp parallel for
         for (int i = 0; i < n * m; i++) {
-            arrayData[i] = 0.0;
+            array[i] = 0.0;
         }
     }
 
-#pragma omp parallel for
-    for (int i = 0; i < n; i++) {
-        (*array)[i] = arrayData + i * m;
-    }
-
-    return arrayData;
+    return array;
 }
 
 void createRandomVectors(double patterns[][Nv]) {
@@ -159,9 +152,10 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
 
     int *classes = (int *)malloc(N * sizeof(int));
     double distances[N][Nc];
-    double **y, **z;
-    double *yData = mallocArray(&y, Nc, Nv, 1);
-    double *zData = mallocArray(&z, Nc, Nv, 1);
+    double *yData = mallocArray(Nc, Nv, 1);
+    double *zData = mallocArray(Nc, Nv, 1);
+    double (*y)[Nv] = (double (*)[Nv])yData;
+    double (*z)[Nv] = (double (*)[Nv])zData;
 
     initialCenters(patterns, centers);
 
@@ -188,8 +182,8 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
 
     free(classes);
-    freeArray(&y, yData);
-    freeArray(&z, zData);
+    freeArray(yData);
+    freeArray(zData);
 }
 
 void kMeansWrapper(void *args) {
@@ -200,15 +194,11 @@ void kMeansWrapper(void *args) {
 int main(int argc, char *argv[]) {
     static double patterns[N][Nv];
     static double centers[Nc][Nv];
-    int *classes = (int *)malloc(N * sizeof(int));
-    double y[Nc][Nv], z[Nc][Nv];
-
-    createRandomVectors(patterns);
 
     // Allocation dynamique des tableaux dans la structure KMeansArgs
     struct KMeansArgs kmeansArgs;
-    kmeansArgs.patterns = malloc(N * sizeof(double[Nv]));
-    kmeansArgs.centers = malloc(Nc * sizeof(double[Nv]));
+    kmeansArgs.patterns = (double (*)[Nv])mallocArray(N, Nv, 0);
+    kmeansArgs.centers = (double (*)[Nv])mallocArray(Nc, Nv, 0);
 
     // Vérifiez si l'allocation a réussi
     if (kmeansArgs.patterns == NULL || kmeansArgs.centers == NULL) {
@@ -216,48 +206,17 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    double error = INFINITY;
-    double errorBefore;
-    int step = 0;
+    createRandomVectors(patterns);
 
-    // Copie des données dans la structure
-    memcpy(kmeansArgs.patterns, patterns, N * sizeof(double[Nv]));
-    memcpy(kmeansArgs.centers, centers, Nc * sizeof(double[Nv]));
-
-    do {
-        errorBefore = error;
-
-#pragma omp parallel sections
-        {
-#pragma omp section
-            kMeansWrapper((void *)&kmeansArgs);
-
-#pragma omp section
-            recalculateCenters(N, patterns, centers, classes, y, z);
-        }
-
-#pragma omp master
-        {
-            if (error != 0.0) {
-                printf("Step:%d||Error:%lf,\n", step, (errorBefore - error) / error);
-            } else {
-                // Cas où error est égal à zéro, évitons la division par zéro
-                printf("Step:%d||Error: N/A (error is zero),\n", step);
-            }
-            step++;
-        }
-
-    } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
+    kMeansWrapper(&kmeansArgs);
 
     // Libération de la mémoire allouée dynamiquement
-    free(classes);
-
-    // Libération de la mémoire allouée pour les tableaux dans la structure KMeansArgs
-    free(kmeansArgs.patterns);
-    free(kmeansArgs.centers);
+    freeArray(kmeansArgs.patterns);
+    freeArray(kmeansArgs.centers);
 
     return EXIT_SUCCESS;
 }
+
 
 
 
