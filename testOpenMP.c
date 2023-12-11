@@ -33,6 +33,9 @@ void recalculateCenters(int Np, double patterns[][Nv], double centers[][Nv], int
         for (int j = 0; j < Nv; j++) {
             if (z[i][j] != 0) {
                 centers[i][j] = y[i][j] / z[i][j];
+            } else {
+                // Handle the case where z[i][j] is zero to avoid division by zero
+                centers[i][j] = 0.0;  // You may want to set it to a default value
             }
         }
     }
