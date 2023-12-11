@@ -19,7 +19,7 @@ void recalculateCenters(int Np, double patterns[][Nv], double centers[][Nv], int
     #pragma omp parallel for
     for (int i = 0; i < Np; i++) {
         int cluster = classes[i];
-        #pragma omp parallel for
+        #pragma omp simd
         for (int j = 0; j < Nv; j++) {
             #pragma omp atomic
             y[cluster][j] += patterns[i][j];
