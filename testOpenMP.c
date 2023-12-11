@@ -7,43 +7,44 @@
 #define Nc 10
 #define Nv 1000
 
-void recalculateCenters(int Np, double patterns[][Nv], double centers[][Nv], int *classes, double (*y)[Nv], double (*z)[Nv]) {
-    #pragma omp parallel for
-    for (int i = 0; i < Nc; i++) {
-        for (int j = 0; j < Nv; j++) {
-            y[i][j] = 0.0;
-            z[i][j] = 0.0;
-        }
-    }
+// Commentez cette fonction pour simplifier et identifier le problème
+// void recalculateCenters(int Np, double patterns[][Nv], double centers[][Nv], int *classes, double (*y)[Nv], double (*z)[Nv]) {
+//     #pragma omp parallel for
+//     for (int i = 0; i < Nc; i++) {
+//         for (int j = 0; j < Nv; j++) {
+//             y[i][j] = 0.0;
+//             z[i][j] = 0.0;
+//         }
+//     }
 
-    #pragma omp parallel for
-    for (int i = 0; i < Np; i++) {
-        int cluster = classes[i];
-        #pragma omp simd
-        for (int j = 0; j < Nv; j++) {
-            #pragma omp atomic
-            y[cluster][j] += patterns[i][j];
-            #pragma omp atomic
-            z[cluster][j] += 1.0;
-        }
-    }
+//     #pragma omp parallel for
+//     for (int i = 0; i < Np; i++) {
+//         int cluster = classes[i];
+//         #pragma omp simd
+//         for (int j = 0; j < Nv; j++) {
+//             #pragma omp atomic
+//             y[cluster][j] += patterns[i][j];
+//             #pragma omp atomic
+//             z[cluster][j] += 1.0;
+//         }
+//     }
 
-    #pragma omp parallel for
-    for (int i = 0; i < Nc; i++) {
-        for (int j = 0; j < Nv; j++) {
-            if (z[i][j] != 0) {
-                centers[i][j] = y[i][j] / z[i][j];
-            } else {
-                // Handle the case where z[i][j] is zero to avoid division by zero
-                centers[i][j] = 0.0;  // You may want to set it to a default value
-            }
-        }
-    }
-}
+//     #pragma omp parallel for
+//     for (int i = 0; i < Nc; i++) {
+//         for (int j = 0; j < Nv; j++) {
+//             if (z[i][j] != 0) {
+//                 centers[i][j] = y[i][j] / z[i][j];
+//             } else {
+//                 centers[i][j] = 0.0;
+//             }
+//         }
+//     }
+// }
 
 void kMeans(int Np, double patterns[][Nv], double centers[][Nv], int *classes, int max_steps) {
-    double (*y)[Nv] = malloc(Nc * sizeof(*y));
-    double (*z)[Nv] = malloc(Nc * sizeof(*z));
+    // Commentez ces lignes pour simplifier et identifier le problème
+    // double (*y)[Nv] = malloc(Nc * sizeof(*y));
+    // double (*z)[Nv] = malloc(Nc * sizeof(*z));
 
     for (int step = 0; step < max_steps; step++) {
         #pragma omp parallel for
@@ -63,11 +64,13 @@ void kMeans(int Np, double patterns[][Nv], double centers[][Nv], int *classes, i
             classes[i] = cluster;
         }
 
-        recalculateCenters(Np, patterns, centers, classes, y, z);
+        // Commentez cette ligne pour simplifier et identifier le problème
+        // recalculateCenters(Np, patterns, centers, classes, y, z);
     }
 
-    free(y);
-    free(z);
+    // Commentez ces lignes pour simplifier et identifier le problème
+    // free(y);
+    // free(z);
 }
 
 int main() {
@@ -82,3 +85,4 @@ int main() {
 
     return 0;
 }
+
