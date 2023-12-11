@@ -1,13 +1,3 @@
-/*
- *
- * kMeans.c
- * 
- * Created on 28/9/22
- * Author Chris Kaldis
- * Version 0.0.4
- *  
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,13 +33,6 @@ int main( int argc, char *argv[] ) {
     return EXIT_SUCCESS;    
 }
 
-/*
- *
- *
- * Create some random patterns for classification.
- * 
- * 
- */
 void createRandomVectors( double patterns[][Nv] ) {
 
 	srand( 1059364 ) ;
@@ -64,13 +47,6 @@ void createRandomVectors( double patterns[][Nv] ) {
 	return ;
 }
 
-/*
- *
- *
- * Simple implementations of Lloyd's Algorithm
- *
- *
- */
 void kMeans( double patterns[][Nv], double centers[][Nv] ) {
 
     double error = INFINITY ;
@@ -104,15 +80,6 @@ void kMeans( double patterns[][Nv], double centers[][Nv] ) {
     return ;
 }
 
-/*
- *
- *
- * Allocates memory for a 2D array ([n][m]) of double type.
- * It uses malloc so if you want to initialize data
- * use initialize value != 0.
- *
- *
- */
 double *mallocArray( double ***array, int n, int m, int initialize ) {
 
     * array = (double **)malloc( n * sizeof(double *) ) ;
@@ -129,15 +96,6 @@ double *mallocArray( double ***array, int n, int m, int initialize ) {
     return arrayData;
 }
 
-
-/*
- *
- *
- * Selects patterns (randomly) as initial centers,
- * different patterns used for each center.
- *
- *
- */
 void initialCenters( double patterns[][Nv], double centers[][Nv] ) {
 
     int centerIndex ;
@@ -154,17 +112,6 @@ void initialCenters( double patterns[][Nv], double centers[][Nv] ) {
     return ;
 }
 
-/*
- *
- *
- * Calculates the distance between patterns and centers,
- * then it finds the closest center for each pattern &
- * stores the index in the array named classes. Also
- * it calculates the error or the total distance
- * between the patterns and the closest mean-center.
- *
- *
- */
 double findClosestCenters( double patterns[][Nv], double centers[][Nv], int classes[], double ***distances ) {
 
     double error = 0.0 ;
@@ -179,14 +126,7 @@ double findClosestCenters( double patterns[][Nv], double centers[][Nv], int clas
     return error;
 }
 
-/*
- *
- *
- * Finds the new means of each class using the patterns that
- * classified into this class.
- *
- *
- */
+
 void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z ) {
 
     double error = 0.0 ;
@@ -212,14 +152,6 @@ void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classe
     return ;
 }
 
-/*
- *
- *
- * Calclulates the Eucledean distance between a pattern
- * and a center.
- *
- *
- */
 double distEucl( double pattern[], double center[] ) {
 
     double distance = 0.0 ;
@@ -230,14 +162,6 @@ double distEucl( double pattern[], double center[] ) {
     return sqrt(distance) ;
 }
 
-/*
- *
- *
- * Finds the index of the minimum value of
- * an array with the current length.
- *
- *
- */
 int argMin( double array[], int length ) {
 
     int index = 0 ;
@@ -253,14 +177,6 @@ int argMin( double array[], int length ) {
     return index ;
 }
 
-/*
- *
- *
- * Free memory of a 2D array of double type.
- * Memory allocated with the function mallocArray().
- *
- *
- */
 void freeArray( double ***array, double *arrayData ) {
     
     free( arrayData ) ;
