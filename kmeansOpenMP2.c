@@ -12,8 +12,8 @@
 
 // Structure pour stocker les arguments de kMeans
 struct KMeansArgs {
-    double patterns[N][Nv];
-    double centers[Nc][Nv];
+    double (*patterns)[Nv];
+    double (*centers)[Nv];
 };
 
 double *mallocArray(double ***array, int n, int m, int initialize);
@@ -42,11 +42,19 @@ int main(int argc, char *argv[]) {
     double *yData = mallocArray(&y, Nc, Nv, 1);
     double **z;
     double *zData = mallocArray(&z, Nc, Nv, 1);
-    double **distances;  // Ajout de cette ligne pour déclarer distances
-    double *distanceData = mallocArray(&distances, N, Nc, 0);  // Ajout de cette ligne pour déclarer distanceData
+    double **distances;
+    double *distanceData = mallocArray(&distances, N, Nc, 0);
 
-    // ... (votre code précédent)
+    // Allocation dynamique des tableaux dans la structure KMeansArgs
+    struct KMeansArgs kmeansArgs;
+    kmeansArgs.patterns = malloc(N * sizeof(double[Nv]));
+    kmeansArgs.centers = malloc(Nc * sizeof(double[Nv]));
 
+    // Vérifiez si l'allocation a réussi
+    if (kmeansArgs.patterns == NULL || kmeansArgs.centers == NULL) {
+        fprintf(stderr, "Erreur d'allocation mémoire\n");
+        exit(EXIT_FAILURE);
+    }
 
     createRandomVectors(patterns);
 
@@ -54,15 +62,13 @@ int main(int argc, char *argv[]) {
     double errorBefore;
     int step = 0;
 
-    // Structure pour stocker les arguments de kMeans
-    struct KMeansArgs kmeansArgs;
-    memcpy(kmeansArgs.patterns, patterns, sizeof(patterns));
-    memcpy(kmeansArgs.centers, centers, sizeof(centers));
+    // Copie des données dans la structure
+    memcpy(kmeansArgs.patterns, patterns, N * sizeof(double[Nv]));
+    memcpy(kmeansArgs.centers, centers, Nc * sizeof(double[Nv]));
 
     do {
         errorBefore = error;
 
-        // Appel parallélisé à la fonction kMeans
 #pragma omp parallel sections
         {
 #pragma omp section
@@ -72,22 +78,27 @@ int main(int argc, char *argv[]) {
             recalculateCenters(patterns, centers, classes, &y, &z);
         }
 
-        // Affichage et vérification de la condition de boucle
 #pragma omp master
         {
             printf("Step:%d||Error:%lf,\n", step, (errorBefore - error) / error);
             step++;
         }
 
-    } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold)); // step 4
+    } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
 
+    // Libération de la mémoire allouée dynamiquement
     free(classes);
     freeArray(&distances, distanceData);
     freeArray(&y, yData);
     freeArray(&z, zData);
 
+    // Libération de la mémoire allouée pour les tableaux dans la structure KMeansArgs
+    free(kmeansArgs.patterns);
+    free(kmeansArgs.centers);
+
     return EXIT_SUCCESS;
 }
+
 
 void createRandomVectors(double patterns[][Nv]) {
     srand(1059364);
