@@ -22,16 +22,6 @@ void freeArray(double ***array, double *data) {
     *array = NULL;
 }
 
-void printCenters(int K, int Nv, double centers[][Nv]) {
-    for (int i = 0; i < K; i++) {
-        printf("Center %d: ", i);
-        for (int j = 0; j < Nv; j++) {
-            printf("%f ", centers[i][j]);
-        }
-        printf("\n");
-    }
-}
-
 double *mallocArray(int n, int m, int initialize) {
     double *array = (double *)malloc(n * m * sizeof(double));
 
