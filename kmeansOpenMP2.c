@@ -52,7 +52,6 @@ void createRandomVectors(double patterns[][Nv]) {
     }
 }
 
-
 double distEucl(double pattern[], double center[]) {
     double distance = 0.0;
 
@@ -134,7 +133,7 @@ void recalculateCenters(int Np, double patterns[][Nv], double centers[][Nv], int
     #pragma omp parallel for
     for (int i = 0; i < Np; i++) {
         int cluster = classes[i];
-        #pragma omp parallel for
+        #pragma omp simd
         for (int j = 0; j < Nv; j++) {
             #pragma omp atomic
             y[cluster][j] += patterns[i][j];
@@ -176,23 +175,29 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
             error = findClosestCenters(patterns, centers, classes, &distances);
 
 #pragma omp section
-            recalculateCenters(patterns, centers, classes, &y, &z);
+            recalculateCenters(N, patterns, centers, classes, y, z);
         }
 
 #pragma omp barrier
 
-#pragma omp single
-        {
-            printf("Step:%d||Error:%lf,\n", step, (errorBefore - error) / error);
-            step++;
-        }
+#pragma omp master
+{
+    if (error != 0.0) {
+    printf("Step:%d||Error:%lf,\n", step, (errorBefore - error) / error);
+} else {
+    // Cas où error est égal à zéro, évitons la division par zéro
+    printf("Step:%d||Error: N/A (error is zero),\n", step);
+}
+step++;
+}
 
-    } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
+} while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
 
-    free(classes);
-    freeArray(&distances, distanceData);
-    freeArray(&y, yData);
-    freeArray(&z, zData);
+// Libération de la mémoire allouée dynamiquement
+free(classes);
+freeArray(&distances, distanceData);
+freeArray(&y, yData);
+freeArray(&z, zData);
 }
 
 void kMeansWrapper(void *args) {
@@ -240,18 +245,18 @@ int main(int argc, char *argv[]) {
             kMeansWrapper((void *)&kmeansArgs);
 
 #pragma omp section
-            recalculateCenters(patterns, centers, classes, &y, &z);
+            recalculateCenters(N, patterns, centers, classes, y, z);
         }
 
 #pragma omp master
 {
     if (error != 0.0) {
-        printf("Step:%d||Error:%lf,\n", step, (errorBefore - error) / error);
-    } else {
-        // Cas où error est égal à zéro, évitons la division par zéro
-        printf("Step:%d||Error: N/A (error is zero),\n", step);
-    }
-    step++;
+    printf("Step:%d||Error:%lf,\n", step, (errorBefore - error) / error);
+} else {
+    // Cas où error est égal à zéro, évitons la division par zéro
+    printf("Step:%d||Error: N/A (error is zero),\n", step);
+}
+step++;
 }
 
 } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
@@ -268,4 +273,5 @@ free(kmeansArgs.centers);
 
 return EXIT_SUCCESS;
 }
+
 
