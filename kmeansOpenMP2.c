@@ -20,11 +20,13 @@ void freeArray(double ***array, double *arrayData) {
     free(arrayData);
 
 #pragma omp parallel for
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < Nc; i++) {
         free((*array)[i]);
     }
 
     free(*array);
+
+    return;
 }
 
 double *mallocArray(double ***array, int n, int m, int initialize) {
