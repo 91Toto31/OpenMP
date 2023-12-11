@@ -16,7 +16,7 @@ struct KMeansArgs {
     double (*centers)[Nv];
 };
 
-void freeArray(double ***array, double *data) {
+void freeArray(double **array, double *data) {
     free(data);
     *array = NULL;
 }
@@ -105,24 +105,24 @@ void initialCenters(double patterns[][Nv], double centers[][Nv]) {
     }
 }
 
-double findClosestCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***distances) {
+double findClosestCenters(double patterns[][Nv], double centers[][Nv], int classes[], double distances[][Nc]) {
     double error = 0.0;
 
 #pragma omp parallel for reduction(+ \
                                    : error)
     for (size_t i = 0; i < N; i++) {
         for (size_t j = 0; j < Nc; j++) {
-            (*distances)[i][j] = distEucl(patterns[i], centers[j]);
+            distances[i][j] = distEucl(patterns[i], centers[j]);
         }
-        classes[i] = argMin((*distances)[i], Nc);
-        error += (*distances)[i][classes[i]];
+        classes[i] = argMin(distances[i], Nc);
+        error += distances[i][classes[i]];
     }
 
     return error;
 }
 
-void recalculateCenters(int Np, double patterns[][Nv], double centers[][Nv], int *classes, double (*y)[Nv], double (*z)[Nv]) {
-    #pragma omp parallel for
+void recalculateCenters(int Np, double patterns[][Nv], double centers[][Nv], int *classes, double y[][Nv], double z[][Nv]) {
+#pragma omp parallel for
     for (int i = 0; i < Nc; i++) {
         for (int j = 0; j < Nv; j++) {
             y[i][j] = 0.0;
@@ -130,19 +130,19 @@ void recalculateCenters(int Np, double patterns[][Nv], double centers[][Nv], int
         }
     }
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int i = 0; i < Np; i++) {
         int cluster = classes[i];
-        #pragma omp simd
+#pragma omp parallel for
         for (int j = 0; j < Nv; j++) {
-            #pragma omp atomic
+#pragma omp atomic
             y[cluster][j] += patterns[i][j];
-            #pragma omp atomic
+#pragma omp atomic
             z[cluster][j] += 1.0;
         }
     }
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int i = 0; i < Nc; i++) {
         for (int j = 0; j < Nv; j++) {
             if (z[i][j] != 0) {
@@ -158,8 +158,7 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     int step = 0;
 
     int *classes = (int *)malloc(N * sizeof(int));
-    double **distances;
-    double *distanceData = mallocArray(&distances, N, Nc, 0);
+    double distances[N][Nc];
     double **y, **z;
     double *yData = mallocArray(&y, Nc, Nv, 1);
     double *zData = mallocArray(&z, Nc, Nv, 1);
@@ -172,7 +171,7 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
 #pragma omp parallel sections private(errorBefore, error)
         {
 #pragma omp section
-            error = findClosestCenters(patterns, centers, classes, &distances);
+            error = findClosestCenters(patterns, centers, classes, distances);
 
 #pragma omp section
             recalculateCenters(N, patterns, centers, classes, y, z);
@@ -180,24 +179,17 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
 
 #pragma omp barrier
 
-#pragma omp master
-{
-    if (error != 0.0) {
-    printf("Step:%d||Error:%lf,\n", step, (errorBefore - error) / error);
-} else {
-    // Cas où error est égal à zéro, évitons la division par zéro
-    printf("Step:%d||Error: N/A (error is zero),\n", step);
-}
-step++;
-}
+#pragma omp single
+        {
+            printf("Step:%d||Error:%lf,\n", step, (errorBefore - error) / error);
+            step++;
+        }
 
-} while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
+    } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
 
-// Libération de la mémoire allouée dynamiquement
-free(classes);
-freeArray(&distances, distanceData);
-freeArray(&y, yData);
-freeArray(&z, zData);
+    free(classes);
+    freeArray(&y, yData);
+    freeArray(&z, zData);
 }
 
 void kMeansWrapper(void *args) {
@@ -209,11 +201,9 @@ int main(int argc, char *argv[]) {
     static double patterns[N][Nv];
     static double centers[Nc][Nv];
     int *classes = (int *)malloc(N * sizeof(int));
-    double **y, **z;
-    double *yData = mallocArray(&y, Nc, Nv, 1);
-    double *zData = mallocArray(&z, Nc, Nv, 1);
-    double **distances;
-    double *distanceData = mallocArray(&distances, N, Nc, 0);
+    double y[Nc][Nv], z[Nc][Nv];
+
+    createRandomVectors(patterns);
 
     // Allocation dynamique des tableaux dans la structure KMeansArgs
     struct KMeansArgs kmeansArgs;
@@ -225,8 +215,6 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Erreur d'allocation mémoire\n");
         exit(EXIT_FAILURE);
     }
-
-    createRandomVectors(patterns);
 
     double error = INFINITY;
     double errorBefore;
@@ -249,29 +237,27 @@ int main(int argc, char *argv[]) {
         }
 
 #pragma omp master
-{
-    if (error != 0.0) {
-    printf("Step:%d||Error:%lf,\n", step, (errorBefore - error) / error);
-} else {
-    // Cas où error est égal à zéro, évitons la division par zéro
-    printf("Step:%d||Error: N/A (error is zero),\n", step);
+        {
+            if (error != 0.0) {
+                printf("Step:%d||Error:%lf,\n", step, (errorBefore - error) / error);
+            } else {
+                // Cas où error est égal à zéro, évitons la division par zéro
+                printf("Step:%d||Error: N/A (error is zero),\n", step);
+            }
+            step++;
+        }
+
+    } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
+
+    // Libération de la mémoire allouée dynamiquement
+    free(classes);
+
+    // Libération de la mémoire allouée pour les tableaux dans la structure KMeansArgs
+    free(kmeansArgs.patterns);
+    free(kmeansArgs.centers);
+
+    return EXIT_SUCCESS;
 }
-step++;
-}
 
-} while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
-
-// Libération de la mémoire allouée dynamiquement
-free(classes);
-freeArray(&distances, distanceData);
-freeArray(&y, yData);
-freeArray(&z, zData);
-
-// Libération de la mémoire allouée pour les tableaux dans la structure KMeansArgs
-free(kmeansArgs.patterns);
-free(kmeansArgs.centers);
-
-return EXIT_SUCCESS;
-}
 
 
