@@ -86,6 +86,7 @@ int argMin(double array[], int length) {
     return global_index;
 }
 
+
 void initialCenters(double patterns[][Nv], double centers[][Nv]) {
     srand(time(NULL));
 
