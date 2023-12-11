@@ -8,30 +8,58 @@
 #define Nv 1000
 
 void recalculateCenters(int Np, double patterns[][Nv], double centers[][Nv], int *classes, double (*y)[Nv], double (*z)[Nv]) {
-    // Votre implémentation de recalculateCenters
-    // Assurez-vous que Nv est défini correctement dans votre code
-    // ...
-
-    // Exemple partiel (assurez-vous d'adapter cela à vos besoins) :
     #pragma omp parallel for
     for (int i = 0; i < Nc; i++) {
         for (int j = 0; j < Nv; j++) {
-            centers[i][j] = y[i][j] / z[i][j];
+            y[i][j] = 0.0;
+            z[i][j] = 0.0;
+        }
+    }
+
+    #pragma omp parallel for
+    for (int i = 0; i < Np; i++) {
+        int cluster = classes[i];
+        #pragma omp parallel for
+        for (int j = 0; j < Nv; j++) {
+            #pragma omp atomic
+            y[cluster][j] += patterns[i][j];
+            #pragma omp atomic
+            z[cluster][j] += 1.0;
+        }
+    }
+
+    #pragma omp parallel for
+    for (int i = 0; i < Nc; i++) {
+        for (int j = 0; j < Nv; j++) {
+            if (z[i][j] != 0) {
+                centers[i][j] = y[i][j] / z[i][j];
+            }
         }
     }
 }
 
 void kMeans(int Np, double patterns[][Nv], double centers[][Nv], int *classes, int max_steps) {
-    // Votre implémentation de kMeans
-    // ...
-
     double (*y)[Nv] = malloc(Nc * sizeof(*y));
     double (*z)[Nv] = malloc(Nc * sizeof(*z));
 
     for (int step = 0; step < max_steps; step++) {
-        // ... Votre logique pour mettre à jour les classes
+        #pragma omp parallel for
+        for (int i = 0; i < Np; i++) {
+            double min_distance = DBL_MAX;
+            int cluster = -1;
+            for (int j = 0; j < Nc; j++) {
+                double distance = 0.0;
+                for (int k = 0; k < Nv; k++) {
+                    distance += pow(patterns[i][k] - centers[j][k], 2);
+                }
+                if (distance < min_distance) {
+                    min_distance = distance;
+                    cluster = j;
+                }
+            }
+            classes[i] = cluster;
+        }
 
-        // Appel de recalculateCenters avec les arguments corrects
         recalculateCenters(Np, patterns, centers, classes, y, z);
     }
 
@@ -40,18 +68,14 @@ void kMeans(int Np, double patterns[][Nv], double centers[][Nv], int *classes, i
 }
 
 int main() {
-    // Votre implémentation de main
-    // Assurez-vous que Np, patterns, centers, classes sont définis et initialisés correctement
-    // ...
+    int Np = 1000;  // Remplacez par votre valeur réelle
+    double patterns[1000][1000];  // Remplacez par votre tableau réel
+    double centers[10][1000];  // Remplacez par votre tableau réel
+    int classes[1000];  // Remplacez par votre tableau réel
 
-    double (*y)[Nv] = malloc(Nc * sizeof(*y));
-    double (*z)[Nv] = malloc(Nc * sizeof(*z));
+    int max_steps = 100;  // Remplacez par votre valeur réelle
 
-    // Appel de recalculateCenters avec les arguments corrects
-    recalculateCenters(Np, patterns, centers, classes, y, z);
-
-    free(y);
-    free(z);
+    kMeans(Np, patterns, centers, classes, max_steps);
 
     return 0;
 }
