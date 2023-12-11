@@ -10,6 +10,12 @@
 #define Maxiters 15    // Maxiters is the maximum number of iterations
 #define Threshold 0.000001
 
+// Structure pour stocker les arguments de kMeans
+struct KMeansArgs {
+    double patterns[N][Nv];
+    double centers[Nc][Nv];
+};
+
 double *mallocArray(double ***array, int n, int m, int initialize);
 void freeArray(double ***array, double *arrayData);
 
@@ -23,6 +29,11 @@ int argMin(double array[], int length);
 
 void createRandomVectors(double patterns[][Nv]);
 
+void kMeansWrapper(void *args) {
+    struct KMeansArgs *kmeansArgs = (struct KMeansArgs *)args;
+    kMeans(kmeansArgs->patterns, kmeansArgs->centers);
+}
+
 int main(int argc, char *argv[]) {
     static double patterns[N][Nv];
     static double centers[Nc][Nv];
@@ -33,15 +44,10 @@ int main(int argc, char *argv[]) {
     double errorBefore;
     int step = 0;
 
-    int *classes = (int *)malloc(N * sizeof(int));
-    double **distances;
-    double *distanceData = mallocArray(&distances, N, Nc, 0);
-    double **y;
-    double *yData = mallocArray(&y, Nc, Nv, 1);
-    double **z;
-    double *zData = mallocArray(&z, Nc, Nv, 1);
-
-    initialCenters(patterns, centers);
+    // Structure pour stocker les arguments de kMeans
+    struct KMeansArgs kmeansArgs;
+    memcpy(kmeansArgs.patterns, patterns, sizeof(patterns));
+    memcpy(kmeansArgs.centers, centers, sizeof(centers));
 
     do {
         errorBefore = error;
@@ -50,13 +56,11 @@ int main(int argc, char *argv[]) {
 #pragma omp parallel sections
         {
 #pragma omp section
-            kMeans(patterns, centers, classes, distances, y, z, &error);
+            kMeansWrapper((void *)&kmeansArgs);
 
 #pragma omp section
             recalculateCenters(patterns, centers, classes, &y, &z);
         }
-
-#pragma omp barrier // Synchronisation des sections
 
         // Affichage et vérification de la condition de boucle
 #pragma omp master
@@ -190,12 +194,13 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
     }
 
 #pragma omp parallel for collapse(2)
-    for (i = 0; i < Nc; i++) {
-        for (j = 0; j < Nv; j++) {
-            centers[i][j] = (*y)[i][j] / (*z)[i][j];
-#pragma omp atomic
+for (i = 0; i < Nc; i++) {
+    for (j = 0; j < Nv; j++) {
+        centers[i][j] = (*y)[i][j] / (*z)[i][j];
+
+#pragma omp critical
+        {
             (*y)[i][j] = 0.0;
-#pragma omp atomic
             (*z)[i][j] = 0.0;
         }
     }
