@@ -37,6 +37,12 @@ void kMeansWrapper(void *args) {
 int main(int argc, char *argv[]) {
     static double patterns[N][Nv];
     static double centers[Nc][Nv];
+    int *classes = (int *)malloc(N * sizeof(int));
+    double **y;
+    double *yData = mallocArray(&y, Nc, Nv, 1);
+    double **z;
+    double *zData = mallocArray(&z, Nc, Nv, 1);
+
 
     createRandomVectors(patterns);
 
@@ -180,7 +186,7 @@ double findClosestCenters(double patterns[][Nv], double centers[][Nv], int class
 }
 
 
-void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z) {
+oid recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z) {
     size_t i, j;
 
 #pragma omp parallel for collapse(2)
@@ -194,14 +200,15 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
     }
 
 #pragma omp parallel for collapse(2)
-for (i = 0; i < Nc; i++) {
-    for (j = 0; j < Nv; j++) {
-        centers[i][j] = (*y)[i][j] / (*z)[i][j];
+    for (i = 0; i < Nc; i++) {
+        for (j = 0; j < Nv; j++) {
+            centers[i][j] = (*y)[i][j] / (*z)[i][j];
 
 #pragma omp critical
-        {
-            (*y)[i][j] = 0.0;
-            (*z)[i][j] = 0.0;
+            {
+                (*y)[i][j] = 0.0;
+                (*z)[i][j] = 0.0;
+            }
         }
     }
 }
