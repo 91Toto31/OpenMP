@@ -16,10 +16,8 @@ struct KMeansArgs {
     double (*centers)[Nv];
 };
 
-void freeArray(double ***array, double *data) {
+void freeArray(double *data) {
     free(data);
-    free(*array);
-    *array = NULL;
 }
 
 double *mallocArray(int n, int m, int initialize) {
@@ -88,7 +86,6 @@ int argMin(double array[], int length) {
     return global_index;
 }
 
-
 void initialCenters(double patterns[][Nv], double centers[][Nv]) {
     srand(time(NULL));
 
@@ -116,6 +113,7 @@ double findClosestCenters(double patterns[][Nv], double centers[][Nv], int class
 
     return error;
 }
+
 void recalculateCenters(int Np, double patterns[][Nv], double centers[][Nv], int *classes, double (*y)[Nv], double (*z)[Nv]) {
 #pragma omp parallel for
     for (int i = 0; i < Nc; i++) {
@@ -216,6 +214,7 @@ int main(int argc, char *argv[]) {
 
     return EXIT_SUCCESS;
 }
+
 
 
 
