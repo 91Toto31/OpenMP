@@ -1,13 +1,3 @@
-/*
- *
- * kMeans.c
- * 
- * Created on 28/9/22
- * Author Chris Kaldis
- * Version 0.0.4
- *  
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
