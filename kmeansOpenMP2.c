@@ -3,6 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include <omp.h>
+#include <time.h>
 
 #define N 100000 // N is the number of patterns
 #define Nc 100    // Nc is the number of classes or centers
