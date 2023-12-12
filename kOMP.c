@@ -186,16 +186,17 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
     }
 
     #pragma omp parallel for private(i, j)
-    for (i = 0; i < Nc; i++) {
-        for (j = 0; j < Nv; j++) {
-            int index = i * Nv + j;
-            if (local_z[index] != 0) {
-                centers[i][j] = local_y[index] / local_z[index];
-            } else {
-                // Réinitialiser au centre actuel pour éviter la division par zéro
-                centers[i][j] = centers[i][j];
-            }
+    for (i = 0; i < Nc * Nv; i++) {
+        int row = i / Nv;
+        int col = i % Nv;
+        int index = row * Nv + col;
+        if (local_z[index] != 0) {
+            centers[row][col] = local_y[index] / local_z[index];
+        } else {
+            // Réinitialiser au centre actuel pour éviter la division par zéro
+            centers[row][col] = centers[row][col];
         }
+        printf("Center[%zu][%zu]: %lf\n", row, col, centers[row][col]); // Ajout d'une sortie de débogage
     }
 
     free(local_y);
