@@ -102,6 +102,9 @@ void initialCenters( double patterns[][Nv], double centers[][Nv] ) {
 
     int centerIndex ;
     size_t i, j ;
+	#pragma omp parallel shared(patterns, centers) private(centerIndex,i,j)
+{
+	#pragma omp for
     for ( i = 0; i < Nc; i++ ) {
         // split patterns in Nc blocks of N/Nc length
         // use rand and % to pick a random number of each block.
@@ -110,7 +113,7 @@ void initialCenters( double patterns[][Nv], double centers[][Nv] ) {
             centers[i][j] = patterns[centerIndex][j] ;
         }
     }
-
+}//end para
     return ;
 }
 
@@ -134,10 +137,10 @@ void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classe
     double error = 0.0 ;
 
     size_t i, j;
-	#pragma omp parallel shared(patterns, centers, classes, y, z) private(i, j) reduction(+:error)
-{
+	// #pragma omp parallel shared(patterns, centers, classes, y, z) private(i, j) reduction(+:error)
+//{
     // calculate tmp arrays
-	#pragma omp for
+	// #pragma omp for
     for (i = 0; i < N; i++) {
         for (j = 0; j < Nv; j++) {
             (*y)[classes[i]][j] += patterns[i][j];
@@ -146,7 +149,7 @@ void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classe
     }
 
     // update step of centers
-    #pragma omp for
+   // #pragma omp for
     for (i = 0; i < Nc; i++) {
         for (j = 0; j < Nv; j++) {
             centers[i][j] = (*y)[i][j] / (*z)[i][j];
@@ -154,7 +157,7 @@ void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classe
             (*z)[i][j] = 0.0;
         }
     }
-} //end para
+//} //end para
     return ;
 }
 
