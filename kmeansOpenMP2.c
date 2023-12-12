@@ -15,9 +15,10 @@ struct KMeansArgs {
     double (*patterns)[Nv];
     double (*centers)[Nv];
 };
-
-void freeArray(double *data) {
-    free(data);
+void freeArray(double ***array) {
+    free(**array);
+    free(*array);
+    *array = NULL;
 }
 
 double *mallocArray(int n, int m, int initialize) {
@@ -187,18 +188,52 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
 void kMeansWrapper(void *args) {
     struct KMeansArgs *kmeansArgs = (struct KMeansArgs *)args;
     kMeans(kmeansArgs->patterns, kmeansArgs->centers);
-}
+}void kMeans(double patterns[][Nv], double centers[][Nv]) {
+    double error = INFINITY;
+    double errorBefore;
+    int step = 0;
 
-int main(int argc, char *argv[]) {
+    int *classes = (int *)malloc(N * sizeof(int));
+    double distances[N][Nc];
+    double (*y)[Nv] = (double (*)[Nv])mallocArray(Nc, Nv, 1);
+    double (*z)[Nv] = (double (*)[Nv])mallocArray(Nc, Nv, 1);
+
+    initialCenters(patterns, centers);
+
+    do {
+        errorBefore = error;
+
+#pragma omp parallel sections private(errorBefore, error)
+        {
+#pragma omp section
+            error = findClosestCenters(patterns, centers, classes, distances);
+
+#pragma omp section
+            recalculateCenters(N, patterns, centers, classes, y, z);
+        }
+
+#pragma omp barrier
+
+#pragma omp single
+        {
+            printf("Step:%d||Error:%lf,\n", step, (errorBefore - error) / error);
+            step++;
+        }
+
+    } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
+
+    free(classes);
+    freeArray(&y);
+    freeArray(&z);
+}
+nt main(int argc, char *argv[]) {
     static double patterns[N][Nv];
     static double centers[Nc][Nv];
 
-    // Allocation dynamique des tableaux dans la structure KMeansArgs
     struct KMeansArgs kmeansArgs;
     kmeansArgs.patterns = (double (*)[Nv])mallocArray(N, Nv, 0);
     kmeansArgs.centers = (double (*)[Nv])mallocArray(Nc, Nv, 0);
 
-    // Vérifiez si l'allocation a réussi
     if (kmeansArgs.patterns == NULL || kmeansArgs.centers == NULL) {
         fprintf(stderr, "Erreur d'allocation mémoire\n");
         exit(EXIT_FAILURE);
@@ -208,9 +243,8 @@ int main(int argc, char *argv[]) {
 
     kMeansWrapper(&kmeansArgs);
 
-    // Libération de la mémoire allouée dynamiquement
-    freeArray((double *)kmeansArgs.patterns);
-    freeArray((double *)kmeansArgs.centers);
+    freeArray(&(kmeansArgs.patterns));
+    freeArray(&(kmeansArgs.centers));
 
     return EXIT_SUCCESS;
 }
