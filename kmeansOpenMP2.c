@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <float.h> // Ajout du fichier d'en-tête pour DBL_MAX
 #include <omp.h>
 #include <time.h>
 
@@ -130,29 +129,36 @@ double findClosestCenters( double patterns[][Nv], double centers[][Nv], int clas
 }
 
 
-void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z ) {
-
-    double error = 0.0 ;
+void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z) {
+    double error = 0.0;
 
     size_t i, j;
+
     // calculate tmp arrays
-    for ( i = 0; i < N; i++ ) {
-        for ( j = 0; j < Nv; j++ ) {
-            (* y)[classes[i]][j] += patterns[i][j] ;
-            (* z)[classes[i]][j] ++ ;
+    #pragma omp parallel for private(j) reduction(+:error)
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < Nv; j++) {
+            #pragma omp atomic
+            (*y)[classes[i]][j] += patterns[i][j];
+            #pragma omp atomic
+            (*z)[classes[i]][j]++;
         }
     }
 
     // update step of centers
-    for ( i = 0; i < Nc; i++ ) {
-        for ( j = 0; j < Nv; j++ ) {
-            centers[i][j] = (* y)[i][j]/(* z)[i][j] ;
-            (* y)[i][j] = 0.0 ;
-            (* z)[i][j] = 0.0 ;
+    #pragma omp parallel for private(j)
+    for (i = 0; i < Nc; i++) {
+        for (j = 0; j < Nv; j++) {
+            #pragma omp critical
+            {
+                centers[i][j] = (*y)[i][j] / (*z)[i][j];
+                (*y)[i][j] = 0.0;
+                (*z)[i][j] = 0.0;
+            }
         }
     }
-    
-    return ;
+
+    return;
 }
 
 double distEucl( double pattern[], double center[] ) {
