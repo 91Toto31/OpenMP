@@ -156,7 +156,7 @@ void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classe
             (* z)[i][j] = 0.0 ;
         }
     }
-}gprof //fin para
+} //fin para
     return ;
 }
 
