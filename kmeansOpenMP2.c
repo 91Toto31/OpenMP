@@ -24,15 +24,26 @@ int argMin( double array[], int length ) ;
 
 void createRandomVectors( double patterns[][Nv] ) ;
 
-int main( int argc, char *argv[] ) {
+int main(int argc, char *argv[]) {
+    static double patterns[N][Nv];
+    static double centers[Nc][Nv];
 
-	static double patterns[N][Nv] ;
-	static double centers[Nc][Nv] ;
+    createRandomVectors(patterns);
 
-	createRandomVectors( patterns ) ;
-	kMeans( patterns, centers ) ;
+    #pragma omp parallel
+    {
+        #pragma omp for nowait
+        for (int i = 0; i < Nc; i++) {
+            initialCenters(patterns, centers);
+        }
 
-    return EXIT_SUCCESS;    
+        #pragma omp for nowait
+        for (int i = 0; i < N; i++) {
+            kMeans(patterns, centers);
+        }
+    }
+
+    return EXIT_SUCCESS;
 }
 
 void createRandomVectors( double patterns[][Nv] ) {
