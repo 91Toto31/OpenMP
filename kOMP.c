@@ -192,13 +192,8 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
         if (local_z[i] != 0) {
             centers[row][col] = local_y[i] / local_z[i];
         } else {
-            #pragma omp critical
-            {
-                printf("Erreur : Division par zéro détectée (2).\n");
-                printf("i = %zu, row = %d, col = %d\n", i, row, col);
-                printf("local_y[i] = %lf, local_z[i] = %d\n", local_y[i], local_z[i]);
-            }
-            exit(EXIT_FAILURE);
+            // Réinitialiser au centre actuel pour éviter la division par zéro
+            centers[row][col] = centers[row][col];
         }
     }
 
