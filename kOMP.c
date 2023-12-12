@@ -59,7 +59,9 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     double errorBefore;
     int step = 0;
 
+    int classes[N];  // Ajout de la déclaration de la variable classes
     int local_classes[N];
+    
     double **distances;
     double *distanceData = mallocArray(&distances, N, Nc, 0);
 
@@ -86,7 +88,6 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
             #pragma omp atomic update
             error += local_error;
 
-            // Copie des résultats dans la variable partagée après la boucle
             #pragma omp for
             for (size_t i = 0; i < N; i++) {
                 classes[i] = local_classes[i];
