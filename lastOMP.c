@@ -153,7 +153,7 @@ double findClosestCenters( double patterns[][Nv], double centers[][Nv], int clas
     size_t i, j ;
 	// # pragma omp parallel shared( patterns, centers, classes, distances) private(error, i, j)
 // {
-	// #pragma omp for
+	 #pragma omp for
     for ( i = 0; i < N; i++ ) {
         for ( j = 0; j < Nc; j++ )
             (* distances)[i][j] = distEucl( patterns[i], centers[j] ) ;
@@ -211,7 +211,7 @@ int argMin( double array[], int length ) {
     double min = array[0] ;
 // #pragma omp parallel shared(array, length) private(index, min)
 // {
-	// #pragma omp for
+	 #pragma omp for
     for ( int i = 1; i < length; i++ ) {
         if ( min > array[i] ) {
             index = i ;
