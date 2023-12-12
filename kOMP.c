@@ -153,39 +153,57 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
     double *local_y = (double *)malloc(Nc * Nv * sizeof(double));
     int *local_z = (int *)malloc(Nc * Nv * sizeof(int));
 
-    // Initialize local_y and local_z
+    // Vérification des allocations
+    if (local_y == NULL || local_z == NULL) {
+        printf("Erreur d'allocation de mémoire.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Initialisation de local_y et local_z
     #pragma omp parallel for
     for (i = 0; i < Nc * Nv; i++) {
         local_y[i] = 0.0;
         local_z[i] = 0;
     }
 
-    // Calculate tmp arrays
-    #pragma omp parallel for private(i, j, classes) reduction(+:error)
+    // Calcul des tableaux temporaires
+    #pragma omp parallel for private(i, j) reduction(+:error)
     for (i = 0; i < N; i++) {
         for (j = 0; j < Nv; j++) {
-            #pragma omp atomic update
-            local_y[classes[i] * Nv + j] += patterns[i][j];
-            #pragma omp atomic update
-            local_z[classes[i] * Nv + j]++;
+            int index = classes[i] * Nv + j;
+            // Vérification des index
+            if (index >= 0 && index < Nc * Nv) {
+                #pragma omp atomic update
+                local_y[index] += patterns[i][j];
+                #pragma omp atomic update
+                local_z[index]++;
+            } else {
+                printf("Erreur : Accès hors limites pour local_y et local_z.\n");
+                exit(EXIT_FAILURE);
+            }
         }
     }
 
-    // Update step of centers
+    // Mise à jour des centres
     #pragma omp parallel for private(i, j)
     for (i = 0; i < Nc; i++) {
         for (j = 0; j < Nv; j++) {
-            // Check if divisor is zero to avoid division by zero
-            if (local_z[i * Nv + j] != 0) {
-                centers[i][j] = local_y[i * Nv + j] / local_z[i * Nv + j];
+            int index = i * Nv + j;
+            // Vérification des index
+            if (index >= 0 && index < Nc * Nv) {
+                if (local_z[index] != 0) {
+                    centers[i][j] = local_y[index] / local_z[index];
+                } else {
+                    // Gardez la valeur précédente des centres pour éviter une division par zéro
+                    centers[i][j] = centers[i][j];
+                }
+                // Réinitialisation de local_y et local_z
+                local_y[index] = 0.0;
+                local_z[index] = 0;
             } else {
-                // Avoid division by zero, keep the previous value of centers
-                centers[i][j] = centers[i][j];
+                printf("Erreur : Accès hors limites pour les centres.\n");
+                exit(EXIT_FAILURE);
             }
-
-            // Reset local_y and local_z
-            local_y[i * Nv + j] = 0.0;
-            local_z[i * Nv + j] = 0;
         }
     }
 
