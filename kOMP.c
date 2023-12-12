@@ -4,13 +4,11 @@
 #include <math.h>
 #include <omp.h>
 
-#define N 100000 // N is the number of patterns
-#define Nc 100    // Nc is the number of classes or centers
-#define Nv 1000   // Nv is the length of each pattern (vector)
-#define Maxiters 15   // Maxiters is the maximum number of iterations
+#define N 100000
+#define Nc 100
+#define Nv 1000
+#define Maxiters 15
 #define Threshold 0.000001
-
-// ... (autres déclarations et définitions)
 
 double *mallocArray(double ***array, int n, int m, int initialize);
 void freeArray(double ***array, double *arrayData);
@@ -20,7 +18,7 @@ void initialCenters(double patterns[][Nv], double centers[][Nv]);
 double findClosestCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***distances);
 void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z);
 
-double distEucl(double pattern[], double center[]);
+double distEuclSquare(double pattern[], double center[]);
 int argMin(double array[], int length);
 
 void createRandomVectors(double patterns[][Nv]);
@@ -31,7 +29,6 @@ int main(int argc, char *argv[]) {
 
     createRandomVectors(patterns);
 
-    // Utilisation de la directive OpenMP pour paralléliser kMeans
     #pragma omp parallel
     {
         #pragma omp for
@@ -62,26 +59,46 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     double errorBefore;
     int step = 0;
 
-    // class or category of each pattern
-    int *classes = (int *)malloc(N * sizeof(int));
-    // distances between patterns and centers
+    int local_classes[N];
     double **distances;
     double *distanceData = mallocArray(&distances, N, Nc, 0);
-    // tmp data for recalculating centers
+
     double **y, **z;
     double *yData = mallocArray(&y, Nc, Nv, 1);
     double *zData = mallocArray(&z, Nc, Nv, 1);
 
-    initialCenters(patterns, centers); //step 1
+    initialCenters(patterns, centers);
+
     do {
         errorBefore = error;
-        error = findClosestCenters(patterns, centers, classes, &distances); // step 2
-        recalculateCenters(patterns, centers, classes, &y, &z); // step 3
+        #pragma omp parallel
+        {
+            double local_error = 0.0;
+
+            #pragma omp for
+            for (size_t i = 0; i < N; i++) {
+                for (size_t j = 0; j < Nc; j++)
+                    distances[i][j] = distEuclSquare(patterns[i], centers[j]);
+                local_classes[i] = argMin(distances[i], Nc);
+                local_error += distances[i][local_classes[i]];
+            }
+
+            #pragma omp atomic update
+            error += local_error;
+
+            // Copie des résultats dans la variable partagée après la boucle
+            #pragma omp for
+            for (size_t i = 0; i < N; i++) {
+                classes[i] = local_classes[i];
+            }
+        }
+
+        recalculateCenters(patterns, centers, classes, &y, &z);
         printf("Step:%d||Error:%lf,\n", step, (errorBefore - error) / error);
         step++;
-    } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold)); // step 4
 
-    free(classes);
+    } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
+
     freeArray(&distances, distanceData);
     freeArray(&y, yData);
     freeArray(&z, zData);
@@ -106,8 +123,6 @@ void initialCenters(double patterns[][Nv], double centers[][Nv]) {
     int centerIndex;
     size_t i, j;
     for (i = 0; i < Nc; i++) {
-        // split patterns in Nc blocks of N/Nc length
-        // use rand and % to pick a random number of each block.
         centerIndex = rand() % (N / Nc * (i + 1) - N / Nc * i + 1) + N / Nc * i;
         for (j = 0; j < Nv; j++) {
             centers[i][j] = patterns[centerIndex][j];
@@ -118,79 +133,50 @@ void initialCenters(double patterns[][Nv], double centers[][Nv]) {
 
 double findClosestCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***distances) {
     double error = 0.0;
-    size_t i, j;
-    #pragma omp parallel for private(j) reduction(+:error)
-    for (i = 0; i < N; i++) {
-        for (j = 0; j < Nc; j++)
-            (*distances)[i][j] = distEucl(patterns[i], centers[j]);
+
+    #pragma omp parallel for reduction(+:error)
+    for (size_t i = 0; i < N; i++) {
+        for (size_t j = 0; j < Nc; j++)
+            (*distances)[i][j] = distEuclSquare(patterns[i], centers[j]);
         classes[i] = argMin((*distances)[i], Nc);
         error += (*distances)[i][classes[i]];
     }
+
     return error;
 }
 
 void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z) {
-    double error = 0.0;
-    size_t i, j;
+    double local_y[Nc][Nv] = {0.0};
+    int local_z[Nc][Nv] = {0};
 
-    double *local_y = (double *)malloc(Nc * Nv * sizeof(double));
-    int *local_z = (int *)malloc(Nc * Nv * sizeof(int));
-
-    // Initialize local_y and local_z
     #pragma omp parallel for
-    for (i = 0; i < Nc * Nv; i++) {
-        local_y[i] = 0.0;
-        local_z[i] = 0;
-    }
-
-    // Calculate tmp arrays
-    #pragma omp parallel for private(j) reduction(+:error)
-    for (i = 0; i < N; i++) {
-        for (j = 0; j < Nv; j++) {
-            #pragma omp atomic update
-            local_y[classes[i] * Nv + j] += patterns[i][j];
-            #pragma omp atomic update
-            local_z[classes[i] * Nv + j]++;
+    for (size_t i = 0; i < N; i++) {
+        for (size_t j = 0; j < Nv; j++) {
+            local_y[classes[i]][j] += patterns[i][j];
+            local_z[classes[i]][j]++;
         }
     }
 
-    // Update step of centers
-    #pragma omp parallel for private(j)
-    for (i = 0; i < Nc; i++) {
-        for (j = 0; j < Nv; j++) {
-            // Check if divisor is zero to avoid division by zero
-            if (local_z[i * Nv + j] != 0) {
-                centers[i][j] = local_y[i * Nv + j] / local_z[i * Nv + j];
-            } else {
-                // Avoid division by zero, keep the previous value of centers
-                centers[i][j] = centers[i][j];
-            }
-
-            // Reset local_y and local_z
-            local_y[i * Nv + j] = 0.0;
-            local_z[i * Nv + j] = 0;
+    #pragma omp parallel for
+    for (size_t i = 0; i < Nc; i++) {
+        for (size_t j = 0; j < Nv; j++) {
+            #pragma omp atomic update
+            centers[i][j] += local_y[i][j];
         }
     }
-
-    free(local_y);
-    free(local_z);
 
     return;
 }
 
-
-double distEucl(double pattern[], double center[]) {
+double distEuclSquare(double pattern[], double center[]) {
     double distance = 0.0;
-
     #pragma omp parallel for reduction(+:distance)
     for (int i = 0; i < Nv; i++) {
         double diff = pattern[i] - center[i];
         distance += diff * diff;
     }
-
-    return sqrt(distance);
+    return distance;
 }
-
 
 int argMin(double array[], int length) {
     int index = 0;
@@ -209,3 +195,4 @@ void freeArray(double ***array, double *arrayData) {
     free(*array);
     return;
 }
+
