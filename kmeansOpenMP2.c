@@ -17,9 +17,10 @@ struct KMeansArgs {
 };
 
 void freeArray(double (*array)[Nv]) {
-    free(*array);
-    *array = NULL;
+    // Ne rien faire, car array est un tableau statique et ne nécessite pas de libération de mémoire.
+    // Si vous aviez alloué dynamiquement array avec malloc, vous utiliseriez free ici.
 }
+
 
 double *mallocArray(int n, int m, int initialize) {
     double *array = (double *)malloc(n * m * sizeof(double));
