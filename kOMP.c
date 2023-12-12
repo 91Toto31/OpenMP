@@ -13,8 +13,8 @@
 
 int **mallocIntArray(int n, int m);
 double **mallocArray(int n, int m);
-void freeIntArray(int **array);
 void freeArray(double **array);
+void freeIntArray(int **array);
 void createRandomVectors(double patterns[][Nv]);
 void initialCenters(double patterns[][Nv], double centers[][Nv]);
 double distEuclSquare(double pattern[], double center[]);
@@ -104,8 +104,13 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
 
     freeArray(distances);
-    freeArray(y);
     freeIntArray(z);
+    freeArray(y);
+}
+
+void freeArray(double **array) {
+    free(array[0]);
+    free(array);
 }
 
 double **mallocArray(int n, int m) {
@@ -148,11 +153,6 @@ void freeIntArray(int **array) {
     free(array[0]);  // Libération des données
     free(array);     // Libération des pointeurs de lignes
 }
-
-/*void freeArray(double **array) {
-    free(array[0]);  // Libération des données
-    free(array);     // Libération des pointeurs de lignes
-}*/
 
 double distEuclSquare(double pattern[], double center[]) {
     double distance = 0.0;
