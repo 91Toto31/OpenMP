@@ -201,6 +201,8 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
     free(local_y);
     free(local_z);
 
+    printf("Recalculate Centers Successful\n"); // Ajout d'une sortie de débogage
+
     return;
 }
 
