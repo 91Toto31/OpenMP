@@ -40,11 +40,15 @@ void createRandomVectors( double patterns[][Nv] ) {
 	srand( 1059364 ) ;
 
 	size_t i, j ;
+	#pragma omp parallel shared(patterns) private(i,j)
+{
+	#pragma omp for
 	for ( i = 0; i < N; i++ ) {
 		for ( j = 0; j < Nv; j++ ) {
 			patterns[i][j] = (double) (random()%100) - 0.1059364*(i+j) ;
 		}
 	}
+} //fin para
 
 	return ;
 }
@@ -127,10 +131,10 @@ void initialCenters( double patterns[][Nv], double centers[][Nv] ) {
 
     int centerIndex ;
     size_t i, j ;
-	//#pragma omp parallel shared(patterns, centers) private (centerIndex,i,j) //ajoute 10s d'excution
+	#pragma omp parallel shared(patterns, centers) private (centerIndex,i,j) //ajoute 10s d'excution
 
-//{
-	//#pragma omp for
+{
+	#pragma omp for
     for ( i = 0; i < Nc; i++ ) {
         // split patterns in Nc blocks of N/Nc length
         // use rand and % to pick a random number of each block.
@@ -139,7 +143,7 @@ void initialCenters( double patterns[][Nv], double centers[][Nv] ) {
             centers[i][j] = patterns[centerIndex][j] ;
         }
     }
-// } // fin para
+ } // fin para
     return ;
 }
 
