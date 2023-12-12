@@ -132,30 +132,43 @@ double findClosestCenters(double patterns[][Nv], double centers[][Nv], int class
 void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z) {
     double error = 0.0;
     size_t i, j;
-    // calculate tmp arrays
-    #pragma omp parallel for private(j)
+
+    // Calculate tmp arrays
+    #pragma omp parallel for private(j) reduction(+:error)
     for (i = 0; i < N; i++) {
         for (j = 0; j < Nv; j++) {
-            #pragma omp atomic
+            #pragma omp atomic update
             (*y)[classes[i]][j] += patterns[i][j];
-            #pragma omp atomic
+            #pragma omp atomic update
             (*z)[classes[i]][j]++;
         }
     }
-    // update step of centers
+
+    // Update step of centers
     #pragma omp parallel for private(j)
     for (i = 0; i < Nc; i++) {
         for (j = 0; j < Nv; j++) {
-            #pragma omp atomic
-            centers[i][j] = (*y)[i][j] / (*z)[i][j];
-            #pragma omp atomic
+            // Check if divisor is zero to avoid division by zero
+            if ((*z)[i][j] != 0) {
+                #pragma omp atomic write
+                centers[i][j] = (*y)[i][j] / (*z)[i][j];
+            } else {
+                // Avoid division by zero, keep the previous value of centers
+                #pragma omp atomic write
+                centers[i][j] = centers[i][j];
+            }
+
+            // Reset tmp arrays
+            #pragma omp atomic write
             (*y)[i][j] = 0.0;
-            #pragma omp atomic
+            #pragma omp atomic write
             (*z)[i][j] = 0.0;
         }
     }
+
     return;
 }
+
 
 double distEucl(double pattern[], double center[]) {
     double distance = 0.0;
