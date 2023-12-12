@@ -152,8 +152,20 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     double (*y)[Nv] = mallocArray(Nc, Nv);
     double (*z)[Nv] = mallocArray(Nc, Nv);
 
-    for (int iter = 0; iter < Maxiters; iter++) {
+    int step = 1;
+    double errorBefore = DBL_MAX;
+    double error = 0.0;
+
+    while (step <= Maxiters && (errorBefore - error) / error > Threshold) {
         recalculateCenters(N, patterns, centers, classes, y, z);
+
+        // Calcul de l'erreur
+        errorBefore = error;
+        error = findClosestCenters(patterns, centers, classes, distances);
+
+        // Affichage des résultats
+        printf("Step:%d || Error:%lf\n", step, (errorBefore - error) / error);
+        step++;
     }
 
     freeArray(y, Nc);
@@ -165,7 +177,6 @@ void kMeansWrapper(void *args) {
     KMeansArgs *kmeansArgs = (KMeansArgs *)args;
     kMeans(kmeansArgs->patterns, kmeansArgs->centers);
 }
-
 
 int main() {
     KMeansArgs kmeansArgs;
