@@ -3,6 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include <omp.h>
+#include <time.h>
 
 #define N 100000 // N is the number of patterns
 #define Nc 100 // Nc is the number of classes or centers
@@ -155,7 +156,7 @@ void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classe
             (* z)[i][j] = 0.0 ;
         }
     }
-} //fin para
+}gprof //fin para
     return ;
 }
 
@@ -173,14 +174,16 @@ int argMin( double array[], int length ) {
 
     int index = 0 ;
     double min = array[0] ;
-
+#pragma omp parallel shared(array, length) private(index, min)
+{
+	#pragma omp for
     for ( int i = 1; i < length; i++ ) {
         if ( min > array[i] ) {
             index = i ;
             min = array[i] ;
         }
     }
-
+} // fin para
     return index ;
 }
 
