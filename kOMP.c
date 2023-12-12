@@ -203,8 +203,6 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
     return;
 }
 
-
-
 double distEuclSquare(double pattern[], double center[]) {
     double distance = 0.0;
     #pragma omp parallel for reduction(+:distance)
