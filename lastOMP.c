@@ -153,16 +153,29 @@ void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classe
     return ;
 }
 
-double distEucl( double pattern[], double center[] ) {
+double distEucl(double pattern[], double center[]) {
+    double distance = 0.0;
+    #pragma omp parallel shared(pattern, center) private(distance)
+    {
+        #pragma omp for
+        for (int i = 0; i < Nv; i++)
+            distance += (pattern[i] - center[i]) * (pattern[i] - center[i]);
+    } // Fin de la région parallèle
 
-    double distance = 0.0 ;
-   // #pragma omp parallel shared(pattern, center) private (distance) //début région parallèle
-// {
- //  #pragma omp for //reduction(+:distance) 
-    for ( int i = 0; i < Nv; i++ )
-        distance += ( pattern[i]-center[i] )*( pattern[i]-center[i] ) ;
-// } //fin de la zone parallèle
-    return sqrt(distance) ;
+    // Protection contre les valeurs négatives ou nulles
+    if (distance < 0.0) {
+        // Gestion du cas où la distance est négative ou nulle
+        // (peut être adapté selon le contexte)
+        distance = 0.0;
+    }
+
+    printf("Distance avant racine carrée : %lf\n", distance);
+
+    double result = sqrt(distance);
+
+    printf("Résultat final : %lf\n", result);
+
+    return result;
 }
 
 int argMin( double array[], int length ) {
