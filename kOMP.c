@@ -197,9 +197,6 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
                     // Gardez la valeur précédente des centres pour éviter une division par zéro
                     centers[i][j] = centers[i][j];
                 }
-                // Réinitialisation de local_y et local_z
-                local_y[index] = 0.0;
-                local_z[index] = 0;
             } else {
                 printf("Erreur : Accès hors limites pour les centres.\n");
                 exit(EXIT_FAILURE);
@@ -212,6 +209,7 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
 
     return;
 }
+
 
 double distEuclSquare(double pattern[], double center[]) {
     double distance = 0.0;
