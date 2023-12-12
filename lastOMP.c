@@ -82,22 +82,34 @@ void kMeans( double patterns[][Nv], double centers[][Nv] ) {
     return ;
 }
 
-double *mallocArray( double ***array, int n, int m, int initialize ) {
+double *mallocArray(double ***array, int n, int m, int initialize) {
+    // Allocation pour les pointeurs de lignes
+    *array = (double **)malloc(n * sizeof(double *));
+    if (*array == NULL) {
+        // Gestion d'erreur si l'allocation échoue
+        perror("Erreur lors de l'allocation pour les pointeurs de lignes");
+        exit(EXIT_FAILURE);
+    }
 
-    * array = (double **)malloc( n * sizeof(double *) ) ;
-    // avoid to fill heap with small memory allocations.
-    double *arrayData = malloc( n*m * sizeof(double) ) ;
+    // Allocation pour les données du tableau
+    double *arrayData = (double *)malloc(n * m * sizeof(double));
+    if (arrayData == NULL) {
+        // Gestion d'erreur si l'allocation échoue
+        perror("Erreur lors de l'allocation pour les données du tableau");
+        exit(EXIT_FAILURE);
+    }
 
-    if ( initialize != 0)
-        memset( arrayData, 0, n*m ) ;
-    
-    size_t i ;
-	#pragma omp parallel shared(array,n,m,initialize) private(arrayData,i)
-{
-	#pragma omp for
-    for( i = 0; i < n; i++ )
-        (* array)[i] = arrayData + i*m ;
-} //fin para
+    // Initialisation des données si nécessaire
+    if (initialize != 0) {
+        memset(arrayData, 0, n * m * sizeof(double));
+    }
+
+    // Allocation parallèle des pointeurs de lignes
+    #pragma omp parallel for
+    for (int i = 0; i < n; i++) {
+        (*array)[i] = arrayData + i * m;
+    } // fin pragma
+
     return arrayData;
 }
 
