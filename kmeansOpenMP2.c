@@ -15,8 +15,7 @@ struct KMeansArgs {
     double (*patterns)[Nv];
     double (*centers)[Nv];
 };
-void freeArray(double ***array) {
-    free(**array);
+void freeArray(double (*array)[Nv]) {
     free(*array);
     *array = NULL;
 }
@@ -181,8 +180,9 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
 
     free(classes);
-    freeArray((double *)y);
-    freeArray((double *)z);
+    // Correction des appels de freeArray
+    freeArray(y);
+    freeArray(z);
 }
 
 void kMeansWrapper(void *args) {
@@ -243,6 +243,7 @@ int main(int argc, char *argv[]) {
 
     kMeansWrapper(&kmeansArgs);
 
+    // Correction des appels de freeArray
     freeArray((double *)kmeansArgs.patterns);
     freeArray((double *)kmeansArgs.centers);
 
