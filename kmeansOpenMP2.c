@@ -11,36 +11,30 @@
 #define Maxiters 15
 #define Threshold 0.000001
 
-struct KMeansArgs {
+typedef struct {
     double (*patterns)[Nv];
     double (*centers)[Nv];
-};
+} KMeansArgs
 
-void freeArray(double (*array)[Nv]) {
-    free(*array);
-    *array = NULL;
+void freeArray(double **array, int n) {
+    for (int i = 0; i < n; i++) {
+        free(array[i]);
+    }
+    free(array);
 }
 
-
+double **mallocArray(int n, int m) {
     double **array = (double **)malloc(n * sizeof(double *));
-    
     if (array == NULL) {
-        fprintf(stderr, "Erreur d'allocation mémoire\n");
+        perror("mallocArray");
         exit(EXIT_FAILURE);
     }
 
     for (int i = 0; i < n; i++) {
         array[i] = (double *)malloc(m * sizeof(double));
-
         if (array[i] == NULL) {
-            fprintf(stderr, "Erreur d'allocation mémoire\n");
+            perror("mallocArray");
             exit(EXIT_FAILURE);
-        }
-
-        if (initialize != 0) {
-            for (int j = 0; j < m; j++) {
-                array[i][j] = 0.0;
-            }
         }
     }
 
@@ -160,42 +154,23 @@ void recalculateCenters(int Np, double patterns[][Nv], double centers[][Nv], int
 }
 
 void kMeans(double patterns[][Nv], double centers[][Nv]) {
-    double error = INFINITY;
-    double errorBefore;
-    int step = 0;
-
     int *classes = (int *)malloc(N * sizeof(int));
-    double distances[N][Nc];
-    double **y = mallocArray(Nc, Nv, 1);
-    double **z = mallocArray(Nc, Nv, 1);
+    if (classes == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
 
-    initialCenters(patterns, centers);
+    double **y = mallocArray(Nc, Nv);
+    double **z = mallocArray(Nc, Nv);
 
-    do {
-        errorBefore = error;
+#pragma omp parallel
+    {
+        recalculateCenters(N, patterns, centers, classes, y, z);
+    }
 
-#pragma omp parallel sections private(errorBefore, error)
-        {
-#pragma omp section
-            error = findClosestCenters(patterns, centers, classes, distances);
-
-#pragma omp section
-            recalculateCenters(N, patterns, centers, classes, y, z);
-        }
-
-#pragma omp barrier
-
-#pragma omp single
-        {
-            printf("Step:%d||Error:%lf,\n", step, (errorBefore - error) / error);
-            step++;
-        }
-
-    } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
-
+    freeArray(y, Nc);
+    freeArray(z, Nc);
     free(classes);
-    freeArray(y);
-    freeArray(z);
 }
 
 void kMeansWrapper(void *args) {
@@ -203,27 +178,17 @@ void kMeansWrapper(void *args) {
     kMeans(kmeansArgs->patterns, kmeansArgs->centers);
 }
 
-int main(int argc, char *argv[]) {
-    static double patterns[N][Nv];
-    static double centers[Nc][Nv];
+int main() {
+    KMeansArgs kmeansArgs;
+    kmeansArgs.patterns = mallocArray(N, Nv);
+    kmeansArgs.centers = mallocArray(Nc, Nv);
 
-    struct KMeansArgs kmeansArgs;
-    kmeansArgs.patterns = (double (*)[Nv])mallocArray(N, Nv, 0);
-    kmeansArgs.centers = (double (*)[Nv])mallocArray(Nc, Nv, 0);
+    kMeans(kmeansArgs.patterns, kmeansArgs.centers);
 
-    if (kmeansArgs.patterns == NULL || kmeansArgs.centers == NULL) {
-        fprintf(stderr, "Erreur d'allocation mémoire\n");
-        exit(EXIT_FAILURE);
-    }
+    freeArray(kmeansArgs.patterns, N);
+    freeArray(kmeansArgs.centers, Nc);
 
-    createRandomVectors(patterns);
-
-    kMeansWrapper(&kmeansArgs);
-
-    freeArray(kmeansArgs.patterns);
-    freeArray(kmeansArgs.centers);
-
-    return EXIT_SUCCESS;
+    return 0;
 }
 
 
