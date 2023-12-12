@@ -84,7 +84,7 @@ void kMeans( double patterns[][Nv], double centers[][Nv] ) {
 
 double *mallocArray( double ***array, int n, int m, int initialize ) {
 
-    * array = (double **)malloc( n * sizeof(double *) ) ;
+    * array_bis = (double **)malloc( n * sizeof(double *) ) ;
     // avoid to fill heap with small memory allocations.
     double *arrayData = malloc( n*m * sizeof(double) ) ;
 
@@ -92,8 +92,9 @@ double *mallocArray( double ***array, int n, int m, int initialize ) {
         memset( arrayData, 0, n*m ) ;
     
     size_t i ;
+	#pragma omp parallel shared(array,n,m,initialize) private(array_bis, arrayData)
     for( i = 0; i < n; i++ )
-        (* array)[i] = arrayData + i*m ;
+        (* array_bis)[i] = arrayData + i*m ;
     
     return arrayData;
 }
@@ -102,7 +103,8 @@ void initialCenters( double patterns[][Nv], double centers[][Nv] ) {
 
     int centerIndex ;
     size_t i, j ;
-	#pragma omp parallel shared(patterns, centers) private (centerIndex,i,j)
+	#pragma omp parallel shared(patterns, centers) private (centerIndex,i,j) //ajoute 10s d'excution
+
 {
 	#pragma omp for
     for ( i = 0; i < Nc; i++ ) {
