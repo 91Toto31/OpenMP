@@ -15,6 +15,7 @@ struct KMeansArgs {
     double (*patterns)[Nv];
     double (*centers)[Nv];
 };
+
 void freeArray(double (*array)[Nv]) {
     free(*array);
     *array = NULL;
