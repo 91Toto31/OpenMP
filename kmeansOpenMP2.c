@@ -1,7 +1,3 @@
-Je m'excuse pour la confusion. Voici le code complet avec les corrections apportées :
-
-c
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
