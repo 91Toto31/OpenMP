@@ -1,3 +1,7 @@
+Je m'excuse pour la confusion. Voici le code complet avec les corrections apportées :
+
+c
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -181,7 +185,6 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
 
     free(classes);
-    // Correction des appels de freeArray
     freeArray(y);
     freeArray(z);
 }
@@ -189,43 +192,6 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
 void kMeansWrapper(void *args) {
     struct KMeansArgs *kmeansArgs = (struct KMeansArgs *)args;
     kMeans(kmeansArgs->patterns, kmeansArgs->centers);
-}void kMeans(double patterns[][Nv], double centers[][Nv]) {
-    double error = INFINITY;
-    double errorBefore;
-    int step = 0;
-
-    int *classes = (int *)malloc(N * sizeof(int));
-    double distances[N][Nc];
-    double (*y)[Nv] = (double (*)[Nv])mallocArray(Nc, Nv, 1);
-    double (*z)[Nv] = (double (*)[Nv])mallocArray(Nc, Nv, 1);
-
-    initialCenters(patterns, centers);
-
-    do {
-        errorBefore = error;
-
-#pragma omp parallel sections private(errorBefore, error)
-        {
-#pragma omp section
-            error = findClosestCenters(patterns, centers, classes, distances);
-
-#pragma omp section
-            recalculateCenters(N, patterns, centers, classes, y, z);
-        }
-
-#pragma omp barrier
-
-#pragma omp single
-        {
-            printf("Step:%d||Error:%lf,\n", step, (errorBefore - error) / error);
-            step++;
-        }
-
-    } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
-
-    free(classes);
-    freeArray(&y);
-    freeArray(&z);
 }
 
 int main(int argc, char *argv[]) {
@@ -245,7 +211,6 @@ int main(int argc, char *argv[]) {
 
     kMeansWrapper(&kmeansArgs);
 
-    // Correction des appels de freeArray
     freeArray(kmeansArgs.patterns);
     freeArray(kmeansArgs.centers);
 
