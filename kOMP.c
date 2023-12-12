@@ -181,8 +181,13 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
 
 double distEucl(double pattern[], double center[]) {
     double distance = 0.0;
-    for (int i = 0; i < Nv; i++)
-        distance += (pattern[i] - center[i]) * (pattern[i] - center[i]);
+
+    #pragma omp parallel for reduction(+:distance)
+    for (int i = 0; i < Nv; i++) {
+        double diff = pattern[i] - center[i];
+        distance += diff * diff;
+    }
+
     return sqrt(distance);
 }
 
