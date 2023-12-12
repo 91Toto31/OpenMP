@@ -9,7 +9,7 @@
 #define Nv 1000
 #define Maxiters 15
 #define Threshold 0.000001
-#define DEBUG 0  // Mettez à 1 pour activer les sorties de débogage
+#define DEBUG 0
 
 int **mallocIntArray(int n, int m);
 double **mallocArray(int n, int m);
@@ -19,19 +19,14 @@ void createRandomVectors(double patterns[][Nv]);
 void initialCenters(double patterns[][Nv], double centers[][Nv]);
 double distEuclSquare(double pattern[], double center[]);
 int argMin(double array[], int length);
-
-double findClosestCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***distances);
-
 void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, int ***z);
-void kMeans(double patterns[][Nv], double centers[][Nv]);
+void kMeans(double patterns[][Nv]);
 
 int main(int argc, char *argv[]) {
     static double patterns[N][Nv];
     static double centers[Nc][Nv];
 
     createRandomVectors(patterns);
-
-    // Initialisation des centres en dehors de la boucle parallèle
     initialCenters(patterns, centers);
 
     #pragma omp parallel
