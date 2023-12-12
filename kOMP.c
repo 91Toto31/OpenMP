@@ -155,15 +155,15 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
 
     // Initialize local_y and local_z
     #pragma omp parallel for
-    for (size_t i = 0; i < Nc * Nv; i++) {
+    for (i = 0; i < Nc * Nv; i++) {
         local_y[i] = 0.0;
         local_z[i] = 0;
     }
 
     // Calculate tmp arrays
     #pragma omp parallel for private(j) reduction(+:error)
-    for (size_t i = 0; i < N; i++) {
-        for (size_t j = 0; j < Nv; j++) {
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < Nv; j++) {
             #pragma omp atomic update
             local_y[classes[i] * Nv + j] += patterns[i][j];
             #pragma omp atomic update
@@ -173,15 +173,10 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
 
     // Update step of centers
     #pragma omp parallel for private(j)
-    for (size_t i = 0; i < Nc; i++) {
-        for (size_t j = 0; j < Nv; j++) {
+    for (i = 0; i < Nc; i++) {
+        for (j = 0; j < Nv; j++) {
             // Check if divisor is zero to avoid division by zero
-            if (local_z[i * Nv + j] != 0) {
-                centers[i][j] = local_y[i * Nv + j] / local_z[i * Nv + j];
-            } else {
-                // Avoid division by zero, keep the previous value of centers
-                centers[i][j] = centers[i][j];
-            }
+            centers[i][j] = (local_z[i * Nv + j] != 0) ? local_y[i * Nv + j] / local_z[i * Nv + j] : centers[i][j];
 
             // Reset local_y and local_z
             local_y[i * Nv + j] = 0.0;
@@ -194,6 +189,7 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
 
     return;
 }
+
 double distEuclSquare(double pattern[], double center[]) {
     double distance = 0.0;
     #pragma omp parallel for reduction(+:distance)
