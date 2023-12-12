@@ -49,40 +49,50 @@ void createRandomVectors( double patterns[][Nv] ) {
 	return ;
 }
 
-void kMeans( double patterns[][Nv], double centers[][Nv] ) {
+void kMeans(double patterns[][Nv], double centers[][Nv]) {
+    double error = INFINITY;
+    double errorBefore;
+    int step = 0;
 
-    double error = INFINITY ;
-    double errorBefore ;
-    int step = 0 ;
-    
     // class or category of each pattern
-    int *classes = (int *)malloc( N*sizeof(int) ) ;
+    int *classes = (int *)malloc(N * sizeof(int));
     // distances between patterns and centers
-    double **distances ;
-    double *distanceData = mallocArray( &distances, N, Nc, 0 ) ;
+    double **distances;
+    double *distanceData = mallocArray(&distances, N, Nc, 0);
     // tmp data for recalculating centers
-    double **y, **z ;
-    double *yData = mallocArray( &y, Nc, Nv, 1 ) ;
-    double *zData = mallocArray( &z, Nc, Nv, 1 ) ;
+    double **y, **z;
+    double *yData = mallocArray(&y, Nc, Nv, 1);
+    double *zData = mallocArray(&z, Nc, Nv, 1);
 
-    initialCenters( patterns, centers ) ; //step 1
+    initialCenters(patterns, centers); //step 1
     do {
-        errorBefore = error ;
-        error = findClosestCenters( patterns, centers, classes, &distances ) ; // step 2
-        recalculateCenters( patterns, centers, classes, &y, &z ) ; // step 3
-        printf( "Step:%d||Error:%lf,\n",step, (errorBefore-error)/error ) ;
-        step ++ ;
-    } while ( (step < Maxiters) && ((errorBefore-error)/error > Threshold) ) ; // step 4
+        errorBefore = error;
+        error = findClosestCenters(patterns, centers, classes, &distances); // step 2
 
-    free( classes ) ;
-    freeArray( &distances, distanceData ) ;
-    freeArray( &y, yData ) ;
-    freeArray( &z, zData ) ;
+        // paralléliser le recalcul des centres
+        #pragma omp parallel sections
+        {
+            #pragma omp section
+            recalculateCenters(patterns, centers, classes, &y, &z); // step 3
+        }
 
-    return ;
+        #pragma omp barrier
+
+        #pragma omp master
+        {
+            printf("Step:%d||Error:%lf,\n", step, (errorBefore - error) / error);
+            step++;
+        }
+
+    } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold)); // step 4
+
+    free(classes);
+    freeArray(&distances, distanceData);
+    freeArray(&y, yData);
+    freeArray(&z, zData);
 }
 
-double *mallocArray(double ***array, int n, int m, int initialize) {
+double *mallocArray(double ***array, int n, int m, int initialize) { //à ajouter des sececonde la para
     // Allocation pour les pointeurs de lignes
     *array = (double **)malloc(n * sizeof(double *));
     if (*array == NULL) {
@@ -166,7 +176,7 @@ void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classe
             (* z)[classes[i]][j] ++ ;
         }
     }
-
+	#pragma omp for
     // update step of centers
     for ( i = 0; i < Nc; i++ ) {
         for ( j = 0; j < Nv; j++ ) {
