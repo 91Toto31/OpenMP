@@ -127,10 +127,10 @@ void initialCenters( double patterns[][Nv], double centers[][Nv] ) {
 
     int centerIndex ;
     size_t i, j ;
-	#pragma omp parallel shared(patterns, centers) private (centerIndex,i,j) //ajoute 10s d'excution
+	//#pragma omp parallel shared(patterns, centers) private (centerIndex,i,j) //ajoute 10s d'excution
 
-{
-	#pragma omp for
+//{
+	//#pragma omp for
     for ( i = 0; i < Nc; i++ ) {
         // split patterns in Nc blocks of N/Nc length
         // use rand and % to pick a random number of each block.
