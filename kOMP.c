@@ -33,6 +33,7 @@ int main(int argc, char *argv[]) {
     // Initialisation des centres en dehors de la boucle parallèle
     initialCenters(patterns, centers);
 
+
     #pragma omp parallel
     {
         #pragma omp single
@@ -148,10 +149,10 @@ void freeIntArray(int **array) {
     free(array);     // Libération des pointeurs de lignes
 }
 
-void freeArray(double **array) {
+/*void freeArray(double **array) {
     free(array[0]);  // Libération des données
     free(array);     // Libération des pointeurs de lignes
-}
+}*/
 
 double distEuclSquare(double pattern[], double center[]) {
     double distance = 0.0;
@@ -234,21 +235,4 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
     printf("Recalculate Centers Successful\n"); // Ajout d'une sortie de débogage
 }
 
-/*int argMin(double array[], int length) {
-    int index = 0;
-    double min = array[0];
-    for (int i = 1; i < length; i++) {
-        if (min > array[i]) {
-            index = i;
-            min = array[i];
-        }
-    }
-    return index;
-} */
-
-/*void freeArray(double ***array, double *arrayData) {
-    free(arrayData);
-    free(*array);
-    return;
-}*/
 
