@@ -191,6 +191,7 @@ double distEucl(double pattern[], double center[]) {
     return sqrt(distance);
 }
 
+
 int argMin(double array[], int length) {
     int index = 0;
     double min = array[0];
