@@ -153,52 +153,55 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
     double *local_y = (double *)malloc(Nc * Nv * sizeof(double));
     int *local_z = (int *)malloc(Nc * Nv * sizeof(int));
 
-    // Vérification des allocations
     if (local_y == NULL || local_z == NULL) {
         printf("Erreur d'allocation de mémoire.\n");
         exit(EXIT_FAILURE);
     }
 
-    // Initialisation de local_y et local_z
     #pragma omp parallel for
     for (i = 0; i < Nc * Nv; i++) {
         local_y[i] = 0.0;
         local_z[i] = 0;
     }
 
-    // Calcul des tableaux temporaires
     #pragma omp parallel for private(i, j) reduction(+:error)
     for (i = 0; i < N; i++) {
         for (j = 0; j < Nv; j++) {
             int index = classes[i] * Nv + j;
-            // Vérification des index
             if (index >= 0 && index < Nc * Nv) {
                 #pragma omp atomic update
                 local_y[index] += patterns[i][j];
                 #pragma omp atomic update
                 local_z[index]++;
             } else {
-                printf("Erreur : Accès hors limites pour local_y et local_z.\n");
+                #pragma omp critical
+                {
+                    printf("Erreur : Accès hors limites pour local_y et local_z.\n");
+                    printf("i = %zu, j = %zu, classes[i] = %d\n", i, j, classes[i]);
+                    printf("index = %d, Nc = %d, Nv = %d\n", index, Nc, Nv);
+                }
                 exit(EXIT_FAILURE);
             }
         }
     }
 
-    // Mise à jour des centres
     #pragma omp parallel for private(i, j)
     for (i = 0; i < Nc; i++) {
         for (j = 0; j < Nv; j++) {
             int index = i * Nv + j;
-            // Vérification des index
             if (index >= 0 && index < Nc * Nv) {
                 if (local_z[index] != 0) {
                     centers[i][j] = local_y[index] / local_z[index];
                 } else {
-                    // Gardez la valeur précédente des centres pour éviter une division par zéro
                     centers[i][j] = centers[i][j];
                 }
             } else {
-                printf("Erreur : Accès hors limites pour les centres.\n");
+                #pragma omp critical
+                {
+                    printf("Erreur : Accès hors limites pour les centres.\n");
+                    printf("i = %zu, j = %zu\n", i, j);
+                    printf("index = %d, Nc = %d, Nv = %d\n", index, Nc, Nv);
+                }
                 exit(EXIT_FAILURE);
             }
         }
@@ -209,7 +212,6 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
 
     return;
 }
-
 
 double distEuclSquare(double pattern[], double center[]) {
     double distance = 0.0;
