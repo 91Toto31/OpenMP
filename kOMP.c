@@ -176,7 +176,7 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
             } else {
                 #pragma omp critical
                 {
-                    printf("Erreur : Accès hors limites pour local_y et local_z.\n");
+                    printf("Erreur : Accès hors limites pour local_y et local_z (1).\n");
                     printf("i = %zu, j = %zu, classes[i] = %d\n", i, j, classes[i]);
                     printf("index = %d, Nc = %d, Nv = %d\n", index, Nc, Nv);
                 }
@@ -186,14 +186,19 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
     }
 
     #pragma omp parallel for private(i, j)
-    for (i = 0; i < Nc; i++) {
-        for (j = 0; j < Nv; j++) {
-            int index = i * Nv + j;
-            if (local_z[index] != 0) {
-                centers[i][j] = local_y[index] / local_z[index];
-            } else {
-                centers[i][j] = centers[i][j];
+    for (i = 0; i < Nc * Nv; i++) {
+        int row = i / Nv;
+        int col = i % Nv;
+        if (local_z[i] != 0) {
+            centers[row][col] = local_y[i] / local_z[i];
+        } else {
+            #pragma omp critical
+            {
+                printf("Erreur : Division par zéro détectée (2).\n");
+                printf("i = %zu, row = %d, col = %d\n", i, row, col);
+                printf("local_y[i] = %lf, local_z[i] = %d\n", local_y[i], local_z[i]);
             }
+            exit(EXIT_FAILURE);
         }
     }
 
