@@ -142,18 +142,16 @@ double findClosestCenters( double patterns[][Nv], double centers[][Nv], int clas
 
 void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z) {
     double error = 0.0;
-
     size_t i, j;
 
     // calculate tmp arrays
     #pragma omp parallel for private(j) reduction(+:error)
     for (i = 0; i < N; i++) {
         for (j = 0; j < Nv; j++) {
-            #pragma omp critical
-            {
-                (*y)[classes[i]][j] += patterns[i][j];
-                (*z)[classes[i]][j]++;
-            }
+            #pragma omp atomic
+            (*y)[classes[i]][j] += patterns[i][j];
+            #pragma omp atomic
+            (*z)[classes[i]][j]++;
         }
     }
 
@@ -162,16 +160,16 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
     for (i = 0; i < Nc; i++) {
         for (j = 0; j < Nv; j++) {
             #pragma omp critical
-            {
-                centers[i][j] = (*y)[i][j] / (*z)[i][j];
-                (*y)[i][j] = 0.0;
-                (*z)[i][j] = 0.0;
-            }
+            centers[i][j] = (*z)[i][j] != 0 ? (*y)[i][j] / (*z)[i][j] : centers[i][j];
+            #pragma omp atomic
+            (*y)[i][j] = 0.0;
+            #pragma omp atomic
+            (*z)[i][j] = 0.0;
         }
     }
-
     return;
 }
+
 
 double distEucl( double pattern[], double center[] ) {
 
