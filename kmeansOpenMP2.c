@@ -152,8 +152,7 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     double (*y)[Nv] = mallocArray(Nc, Nv);
     double (*z)[Nv] = mallocArray(Nc, Nv);
 
-#pragma omp parallel
-    {
+    for (int iter = 0; iter < Maxiters; iter++) {
         recalculateCenters(N, patterns, centers, classes, y, z);
     }
 
@@ -173,6 +172,7 @@ int main() {
     kmeansArgs.patterns = mallocArray(N, Nv);
     kmeansArgs.centers = mallocArray(Nc, Nv);
 
+    initialCenters(kmeansArgs.patterns, kmeansArgs.centers);
     kMeans(kmeansArgs.patterns, kmeansArgs.centers);
 
     freeArray(kmeansArgs.patterns, N);
