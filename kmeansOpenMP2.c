@@ -226,6 +226,7 @@ void kMeansWrapper(void *args) {
     freeArray(&y);
     freeArray(&z);
 }
+
 int main(int argc, char *argv[]) {
     static double patterns[N][Nv];
     static double centers[Nc][Nv];
@@ -244,12 +245,11 @@ int main(int argc, char *argv[]) {
     kMeansWrapper(&kmeansArgs);
 
     // Correction des appels de freeArray
-    freeArray((double *)kmeansArgs.patterns);
-    freeArray((double *)kmeansArgs.centers);
+    freeArray(kmeansArgs.patterns);
+    freeArray(kmeansArgs.centers);
 
     return EXIT_SUCCESS;
 }
-
 
 
 
