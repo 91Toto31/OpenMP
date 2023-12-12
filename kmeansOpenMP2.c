@@ -17,18 +17,30 @@ struct KMeansArgs {
 };
 
 void freeArray(double (*array)[Nv]) {
-    // Ne rien faire, car array est un tableau statique et ne nécessite pas de libération de mémoire.
-    // Si vous aviez alloué dynamiquement array avec malloc, vous utiliseriez free ici.
+    free(*array);
+    *array = NULL;
 }
 
 
-double *mallocArray(int n, int m, int initialize) {
-    double *array = (double *)malloc(n * m * sizeof(double));
+    double **array = (double **)malloc(n * sizeof(double *));
+    
+    if (array == NULL) {
+        fprintf(stderr, "Erreur d'allocation mémoire\n");
+        exit(EXIT_FAILURE);
+    }
 
-    if (initialize != 0) {
-#pragma omp parallel for
-        for (int i = 0; i < n * m; i++) {
-            array[i] = 0.0;
+    for (int i = 0; i < n; i++) {
+        array[i] = (double *)malloc(m * sizeof(double));
+
+        if (array[i] == NULL) {
+            fprintf(stderr, "Erreur d'allocation mémoire\n");
+            exit(EXIT_FAILURE);
+        }
+
+        if (initialize != 0) {
+            for (int j = 0; j < m; j++) {
+                array[i][j] = 0.0;
+            }
         }
     }
 
@@ -154,8 +166,8 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
 
     int *classes = (int *)malloc(N * sizeof(int));
     double distances[N][Nc];
-    double (*y)[Nv] = (double (*)[Nv])mallocArray(Nc, Nv, 1);
-    double (*z)[Nv] = (double (*)[Nv])mallocArray(Nc, Nv, 1);
+    double **y = mallocArray(Nc, Nv, 1);
+    double **z = mallocArray(Nc, Nv, 1);
 
     initialCenters(patterns, centers);
 
