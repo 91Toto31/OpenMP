@@ -117,17 +117,23 @@ void initialCenters( double patterns[][Nv], double centers[][Nv] ) {
     return ;
 }
 
-double findClosestCenters( double patterns[][Nv], double centers[][Nv], int classes[], double ***distances ) {
+double findClosestCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***distances) {
+    double error = 0.0;
+    size_t i, j;
 
-    double error = 0.0 ;
-    size_t i, j ;
-    for ( i = 0; i < N; i++ ) {
-        for ( j = 0; j < Nc; j++ )
-            (* distances)[i][j] = distEucl( patterns[i], centers[j] ) ;
-        classes[i] = argMin( (* distances)[i], Nc ) ;
-        error += (* distances)[i][classes[i]] ;
+    #pragma omp parallel  shared(patterns, centers, classes, distances) private(i, j, error) 
+{
+	#pragma for
+    for (i = 0; i < N; i++) {
+        // Compute distances in parallel
+        for (j = 0; j < Nc; j++)
+            (*distances)[i][j] = distEucl(patterns[i], centers[j]);
+
+        // Find the closest center and update error in parallel
+        classes[i] = argMin((*distances)[i], Nc);
+        error += (*distances)[i][classes[i]];
     }
-
+}//end para
     return error;
 }
 
