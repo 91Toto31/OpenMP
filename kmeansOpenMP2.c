@@ -153,7 +153,7 @@ void recalculateCenters(int Np, double patterns[][Nv], double centers[][Nv], int
     }
 }
 
-oid kMeans(double patterns[][Nv], double centers[][Nv]) {
+void kMeans(double patterns[][Nv], double centers[][Nv]) {
     int *classes = (int *)malloc(N * sizeof(int));
     if (classes == NULL) {
         perror("malloc");
