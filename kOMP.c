@@ -75,25 +75,25 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
 
     do {
         errorBefore = error;
+        double local_error = 0.0;  // Déplacer la variable en dehors de la région parallèle
+
         #pragma omp parallel
         {
-            double local_error = 0.0;  // Modification ici pour supprimer l'appel à findClosestCenters
-
             #pragma omp for reduction(+:local_error)
             for (size_t i = 0; i < N; i++) {
                 local_error += distEuclSquare(patterns[i], centers[classes[i]]);
             }
 
-            #pragma omp atomic update
-            error += local_error;
-
             #pragma omp for
             for (size_t i = 0; i < N; i++) {
-                classes[i] = local_classes[i];
+                local_classes[i] = argMin(distances[i], Nc);
             }
         }
 
-        recalculateCenters(patterns, centers, classes, &y, &z);
+        #pragma omp atomic update
+        error += local_error;
+
+        recalculateCenters(patterns, centers, local_classes, &y, &z);
 
         #if DEBUG
         printf("Step:%d || Error:%lf\n", step, (errorBefore - error) / error);
