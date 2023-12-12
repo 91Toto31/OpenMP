@@ -226,7 +226,7 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
             // Réinitialiser au centre actuel pour éviter la division par zéro
             (*y)[row][col] = centers[row][col];
         }
-        printf("Center[%zu][%zu]: %lf\n", row, col, (*y)[row][col]); // Ajout d'une sortie de débogage
+        printf("Center[%d][%d]: %lf\n", row, col, (*y)[row][col]);
     }
 
     free(local_y);
