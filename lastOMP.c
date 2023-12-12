@@ -139,7 +139,7 @@ void initialCenters( double patterns[][Nv], double centers[][Nv] ) {
             centers[i][j] = patterns[centerIndex][j] ;
         }
     }
-} // fin para
+// } // fin para
     return ;
 }
 
