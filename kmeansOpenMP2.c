@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <float.h> // Ajout du fichier d'en-tête pour DBL_MAX
 #include <omp.h>
 #include <time.h>
 
@@ -155,6 +156,9 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     int step = 1;
     double errorBefore = DBL_MAX;
     double error = 0.0;
+
+    // Ajout de la déclaration de distances
+    double distances[N][Nc];
 
     while (step <= Maxiters && (errorBefore - error) / error > Threshold) {
         recalculateCenters(N, patterns, centers, classes, y, z);
