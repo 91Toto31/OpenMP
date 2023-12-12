@@ -150,22 +150,22 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
     double local_y[Nc][Nv] = {0.0};
     int local_z[Nc][Nv] = {0};
 
-    #pragma omp parallel for
-    for (size_t i = 0; i < N; i++) {
-        for (size_t j = 0; j < Nv; j++) {
-            local_y[classes[i]][j] += patterns[i][j];
-            local_z[classes[i]][j]++;
-        }
-    }
-
-    #pragma omp parallel for
+    #pragma omp parallel for private(j)
     for (size_t i = 0; i < Nc; i++) {
         for (size_t j = 0; j < Nv; j++) {
-            #pragma omp atomic update
-            centers[i][j] += local_y[i][j];
+            // Check if divisor is zero to avoid division by zero
+            if (local_z[i * Nv + j] != 0) {
+                centers[i][j] = local_y[i * Nv + j] / local_z[i * Nv + j];
+            } else {
+                // Avoid division by zero, keep the previous value of centers
+                centers[i][j] = centers[i][j];
+            }
+
+            // Reset local_y and local_z
+            local_y[i * Nv + j] = 0.0;
+            local_z[i * Nv + j] = 0;
         }
     }
-
     return;
 }
 
