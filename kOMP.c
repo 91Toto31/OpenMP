@@ -20,7 +20,7 @@ void initialCenters(double patterns[][Nv], double centers[][Nv]);
 double distEuclSquare(double pattern[], double center[]);
 int argMin(double array[], int length);
 void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, int ***z);
-void kMeans(double patterns[][Nv]);
+void kMeans(double patterns[][Nv], double centers[][Nv]);
 
 int main(int argc, char *argv[]) {
     static double patterns[N][Nv];
