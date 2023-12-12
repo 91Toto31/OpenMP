@@ -213,9 +213,9 @@ int argMin(double array[], int length) {
     return index;
 }
 
-/*void freeArray(double ***array, double *arrayData) {
+void freeArray(double ***array, double *arrayData) {
     free(arrayData);
     free(*array);
     return;
-}*/
+}
 
