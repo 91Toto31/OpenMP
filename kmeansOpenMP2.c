@@ -163,9 +163,10 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
 }
 
 void kMeansWrapper(void *args) {
-    struct KMeansArgs *kmeansArgs = (struct KMeansArgs *)args;
+    KMeansArgs *kmeansArgs = (KMeansArgs *)args;
     kMeans(kmeansArgs->patterns, kmeansArgs->centers);
 }
+
 
 int main() {
     KMeansArgs kmeansArgs;
