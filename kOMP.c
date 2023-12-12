@@ -21,8 +21,9 @@ double distEuclSquare(double pattern[], double center[]);
 int argMin(double array[], int length);
 
 double findClosestCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***distances);
+
 void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, int ***z);
-void kMeans(double patterns[][Nv], double centers[][Nv]);
+void kMeans(double patterns[][Nv]);
 
 int main(int argc, char *argv[]) {
     static double patterns[N][Nv];
