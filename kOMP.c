@@ -147,9 +147,31 @@ double findClosestCenters(double patterns[][Nv], double centers[][Nv], int class
 }
 
 void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z) {
-    double local_y[Nc][Nv] = {0.0};
-    int local_z[Nc][Nv] = {0};
+    double error = 0.0;
+    size_t i, j;
 
+    double *local_y = (double *)malloc(Nc * Nv * sizeof(double));
+    int *local_z = (int *)malloc(Nc * Nv * sizeof(int));
+
+    // Initialize local_y and local_z
+    #pragma omp parallel for
+    for (size_t i = 0; i < Nc * Nv; i++) {
+        local_y[i] = 0.0;
+        local_z[i] = 0;
+    }
+
+    // Calculate tmp arrays
+    #pragma omp parallel for private(j) reduction(+:error)
+    for (size_t i = 0; i < N; i++) {
+        for (size_t j = 0; j < Nv; j++) {
+            #pragma omp atomic update
+            local_y[classes[i] * Nv + j] += patterns[i][j];
+            #pragma omp atomic update
+            local_z[classes[i] * Nv + j]++;
+        }
+    }
+
+    // Update step of centers
     #pragma omp parallel for private(j)
     for (size_t i = 0; i < Nc; i++) {
         for (size_t j = 0; j < Nv; j++) {
@@ -166,9 +188,12 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
             local_z[i * Nv + j] = 0;
         }
     }
+
+    free(local_y);
+    free(local_z);
+
     return;
 }
-
 double distEuclSquare(double pattern[], double center[]) {
     double distance = 0.0;
     #pragma omp parallel for reduction(+:distance)
