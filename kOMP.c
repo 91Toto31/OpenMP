@@ -23,7 +23,7 @@ int argMin(double array[], int length);
 double findClosestCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***distances);
 
 void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, int ***z);
-void kMeans(double patterns[][Nv]);
+void kMeans(double patterns[][Nv], double centers[][Nv]);
 
 int main(int argc, char *argv[]) {
     static double patterns[N][Nv];
@@ -33,7 +33,6 @@ int main(int argc, char *argv[]) {
 
     // Initialisation des centres en dehors de la boucle parallèle
     initialCenters(patterns, centers);
-
 
     #pragma omp parallel
     {
@@ -235,5 +234,6 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
 
     printf("Recalculate Centers Successful\n"); // Ajout d'une sortie de débogage
 }
+
 
 
