@@ -16,26 +16,15 @@ typedef struct {
     double (*centers)[Nv];
 } KMeansArgs;
 
-void freeArray(double **array, int n) {
-    for (int i = 0; i < n; i++) {
-        free(array[i]);
-    }
+void freeArray(double (*array)[Nv], int n) {
     free(array);
 }
 
-double **mallocArray(int n, int m) {
-    double **array = (double **)malloc(n * sizeof(double *));
+double (*mallocArray(int n, int m))[Nv] {
+    double (*array)[Nv] = malloc(n * sizeof(*array));
     if (array == NULL) {
         perror("mallocArray");
         exit(EXIT_FAILURE);
-    }
-
-    for (int i = 0; i < n; i++) {
-        array[i] = (double *)malloc(m * sizeof(double));
-        if (array[i] == NULL) {
-            perror("mallocArray");
-            exit(EXIT_FAILURE);
-        }
     }
 
     return array;
@@ -168,11 +157,10 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
         recalculateCenters(N, patterns, centers, classes, y, z);
     }
 
-    freeArray((double **)y, Nc);
-    freeArray((double **)z, Nc);
+    freeArray(y, Nc);
+    freeArray(z, Nc);
     free(classes);
 }
-
 
 void kMeansWrapper(void *args) {
     struct KMeansArgs *kmeansArgs = (struct KMeansArgs *)args;
@@ -186,8 +174,8 @@ int main() {
 
     kMeans(kmeansArgs.patterns, kmeansArgs.centers);
 
-    freeArray((double **)kmeansArgs.patterns, N);
-    freeArray((double **)kmeansArgs.centers, Nc);
+    freeArray(kmeansArgs.patterns, N);
+    freeArray(kmeansArgs.centers, Nc);
 
     return 0;
 }
