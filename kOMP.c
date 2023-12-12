@@ -11,7 +11,9 @@
 #define Threshold 0.000001
 #define DEBUG 0  // Mettez à 1 pour activer les sorties de débogage
 
+int **mallocIntArray(int n, int m);
 double **mallocArray(int n, int m);
+void freeIntArray(int **array);
 void freeArray(double **array);
 void createRandomVectors(double patterns[][Nv]);
 void initialCenters(double patterns[][Nv], double centers[][Nv]);
@@ -20,7 +22,7 @@ int argMin(double array[], int length);
 
 void kMeans(double patterns[][Nv], double centers[][Nv]);
 double findClosestCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***distances);
-void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z);
+void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, int ***z);
 
 int main(int argc, char *argv[]) {
     static double patterns[N][Nv];
@@ -73,7 +75,7 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     double **distances = mallocArray(N, Nc);
 
     double **y = mallocArray(Nc, Nv);
-    double **z = mallocArray(Nc, Nv);
+    int **z = mallocIntArray(Nc, Nv);
 
     do {
         errorBefore = error;
@@ -102,12 +104,12 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
 
     freeArray(distances);
     freeArray(y);
-    freeArray(z);
+    freeIntArray(z);
 }
 
-double **mallocArray(int n, int m) {
-    double **array = (double **)malloc(n * sizeof(double *));
-    double *arrayData = (double *)malloc(n * m * sizeof(double));
+int **mallocIntArray(int n, int m) {
+    int **array = (int **)malloc(n * sizeof(int *));
+    int *arrayData = (int *)malloc(n * m * sizeof(int));
 
     if (array == NULL || arrayData == NULL) {
         printf("Erreur d'allocation de mémoire.\n");
@@ -121,6 +123,11 @@ double **mallocArray(int n, int m) {
         array[i] = arrayData + i * m;
 
     return array;
+}
+
+void freeIntArray(int **array) {
+    free(array[0]);  // Libération des données
+    free(array);     // Libération des pointeurs de lignes
 }
 
 void freeArray(double **array) {
@@ -213,9 +220,9 @@ int argMin(double array[], int length) {
     return index;
 }
 
-void freeArray(double ***array, double *arrayData) {
+/*void freeArray(double ***array, double *arrayData) {
     free(arrayData);
     free(*array);
     return;
-}
+}*/
 
