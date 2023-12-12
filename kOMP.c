@@ -107,6 +107,24 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
     freeIntArray(z);
 }
 
+double **mallocArray(int n, int m) {
+    double **array = (double **)malloc(n * sizeof(double *));
+    double *arrayData = (double *)malloc(n * m * sizeof(double));
+
+    if (array == NULL || arrayData == NULL) {
+        printf("Erreur d'allocation de mémoire.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    memset(arrayData, 0, n * m);
+
+    size_t i;
+    for (i = 0; i < n; i++)
+        array[i] = arrayData + i * m;
+
+    return array;
+}
+
 int **mallocIntArray(int n, int m) {
     int **array = (int **)malloc(n * sizeof(int *));
     int *arrayData = (int *)malloc(n * m * sizeof(int));
@@ -135,77 +153,85 @@ void freeArray(double **array) {
     free(array);     // Libération des pointeurs de lignes
 }
 
-double findClosestCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***distances) {
-    double error = 0.0;
-
-    #pragma omp parallel for reduction(+:error)
-    for (size_t i = 0; i < N; i++) {
-        for (size_t j = 0; j < Nc; j++)
-            (*distances)[i][j] = distEuclSquare(patterns[i], centers[j]);
-        classes[i] = argMin((*distances)[i], Nc);
-        error += (*distances)[i][classes[i]];
-    }
-
-    return error;
-}
-
-void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z) {
-    size_t i, j;
-
-    double **local_y = mallocArray(Nc, Nv);
-    int **local_z = mallocArray(Nc, Nv);
-
-    #pragma omp parallel for collapse(2)
-    for (i = 0; i < Nc; i++) {
-        for (j = 0; j < Nv; j++) {
-            local_y[i][j] = 0.0;
-            local_z[i][j] = 0;
-        }
-    }
-
-    #pragma omp parallel for private(i, j)
-    for (i = 0; i < N; i++) {
-        for (j = 0; j < Nv; j++) {
-            int index = classes[i] * Nv + j;
-            if (index >= 0 && index < Nc * Nv) {
-                #pragma omp atomic update
-                local_y[classes[i]][j] += patterns[i][j];
-                #pragma omp atomic update
-                local_z[classes[i]][j]++;
-            }
-        }
-    }
-
-    #pragma omp parallel for collapse(2)
-    for (i = 0; i < Nc; i++) {
-        for (j = 0; j < Nv; j++) {
-            if (local_z[i][j] != 0) {
-                centers[i][j] = local_y[i][j] / local_z[i][j];
-            } else {
-                // Réinitialiser au centre actuel pour éviter la division par zéro
-                centers[i][j] = centers[i][j];
-            }
-
-            #if DEBUG
-            printf("Center[%zu][%zu]: %lf\n", i, j, centers[i][j]);
-            #endif
-        }
-    }
-
-    freeArray(local_y);
-    freeArray(local_z);
-}
-
 double distEuclSquare(double pattern[], double center[]) {
     double distance = 0.0;
-
     #pragma omp parallel for reduction(+:distance)
     for (int i = 0; i < Nv; i++) {
         double diff = pattern[i] - center[i];
         distance += diff * diff;
     }
-
     return distance;
+}
+
+int argMin(double array[], int length) {
+    int index = 0;
+    double min = array[0];
+    for (int i = 1; i < length; i++) {
+        if (min > array[i]) {
+            index = i;
+            min = array[i];
+        }
+    }
+    return index;
+}
+
+void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, int ***z) {
+    double error = 0.0;
+    size_t i, j;
+
+    double *local_y = (double *)malloc(Nc * Nv * sizeof(double));
+    int *local_z = (int *)malloc(Nc * Nv * sizeof(int));
+
+    if (local_y == NULL || local_z == NULL) {
+        printf("Erreur d'allocation de mémoire.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    #pragma omp parallel for
+    for (i = 0; i < Nc * Nv; i++) {
+        local_y[i] = 0.0;
+        local_z[i] = 0;
+    }
+
+    #pragma omp parallel for private(i, j) reduction(+:error)
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < Nv; j++) {
+            int index = classes[i] * Nv + j;
+            if (index >= 0 && index < Nc * Nv) {
+                #pragma omp atomic update
+                local_y[index] += patterns[i][j];
+                #pragma omp atomic update
+                local_z[index]++;
+            } else {
+                #pragma omp critical
+                {
+                    printf("Erreur : Accès hors limites pour local_y et local_z (1).\n");
+                    printf("i = %zu, j = %zu, classes[i] = %d\n", i, j, classes[i]);
+                    printf("index = %d, Nc = %d, Nv = %d\n", index, Nc, Nv);
+                }
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+
+    #pragma omp parallel for private(i, j)
+    for (i = 0; i < Nc * Nv; i++) {
+        int row = i / Nv;
+        int col = i % Nv;
+        int index = row * Nv + col;
+        if (local_z[index] != 0) {
+            (*y)[row][col] = local_y[index] / local_z[index];
+        } else {
+            // Réinitialiser au centre actuel pour éviter la division par zéro
+            (*y)[row][col] = centers[row][col];
+        }
+        printf("Center[%zu][%zu]: %lf\n", row, col, (*y)[row][col]); // Ajout d'une sortie de débogage
+    }
+
+    free(local_y);
+    free(local_z);
+
+    printf("Recalculate Centers Successful\n"); // Ajout d'une sortie de débogage
 }
 
 int argMin(double array[], int length) {
