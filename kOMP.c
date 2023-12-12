@@ -67,7 +67,7 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
 
     int classes[N];
     int local_classes[N];
-    
+
     double **distances = mallocArray(N, Nc);
 
     double **y = mallocArray(Nc, Nv);
@@ -77,7 +77,12 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
         errorBefore = error;
         #pragma omp parallel
         {
-            double local_error = findClosestCenters(patterns, centers, local_classes, &distances);
+            double local_error = 0.0;  // Modification ici pour supprimer l'appel à findClosestCenters
+
+            #pragma omp for reduction(+:local_error)
+            for (size_t i = 0; i < N; i++) {
+                local_error += distEuclSquare(patterns[i], centers[classes[i]]);
+            }
 
             #pragma omp atomic update
             error += local_error;
@@ -221,7 +226,7 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
             // Réinitialiser au centre actuel pour éviter la division par zéro
             (*y)[row][col] = centers[row][col];
         }
-        printf("Center[%d][%d]: %lf\n", row, col, (*y)[row][col]);
+        printf("Center[%zu][%zu]: %lf\n", row, col, (*y)[row][col]); // Ajout d'une sortie de débogage
     }
 
     free(local_y);
@@ -229,6 +234,5 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
 
     printf("Recalculate Centers Successful\n"); // Ajout d'une sortie de débogage
 }
-
 
 
