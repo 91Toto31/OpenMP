@@ -133,14 +133,24 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
     double error = 0.0;
     size_t i, j;
 
+    double *local_y = (double *)malloc(Nc * Nv * sizeof(double));
+    int *local_z = (int *)malloc(Nc * Nv * sizeof(int));
+
+    // Initialize local_y and local_z
+    #pragma omp parallel for
+    for (i = 0; i < Nc * Nv; i++) {
+        local_y[i] = 0.0;
+        local_z[i] = 0;
+    }
+
     // Calculate tmp arrays
     #pragma omp parallel for private(j) reduction(+:error)
     for (i = 0; i < N; i++) {
         for (j = 0; j < Nv; j++) {
             #pragma omp atomic update
-            (*y)[classes[i]][j] += patterns[i][j];
+            local_y[classes[i] * Nv + j] += patterns[i][j];
             #pragma omp atomic update
-            (*z)[classes[i]][j]++;
+            local_z[classes[i] * Nv + j]++;
         }
     }
 
@@ -149,22 +159,21 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
     for (i = 0; i < Nc; i++) {
         for (j = 0; j < Nv; j++) {
             // Check if divisor is zero to avoid division by zero
-            if ((*z)[i][j] != 0) {
-                #pragma omp atomic write
-                centers[i][j] = (*y)[i][j] / (*z)[i][j];
+            if (local_z[i * Nv + j] != 0) {
+                centers[i][j] = local_y[i * Nv + j] / local_z[i * Nv + j];
             } else {
                 // Avoid division by zero, keep the previous value of centers
-                #pragma omp atomic write
                 centers[i][j] = centers[i][j];
             }
 
-            // Reset tmp arrays
-            #pragma omp atomic write
-            (*y)[i][j] = 0.0;
-            #pragma omp atomic write
-            (*z)[i][j] = 0.0;
+            // Reset local_y and local_z
+            local_y[i * Nv + j] = 0.0;
+            local_z[i * Nv + j] = 0;
         }
     }
+
+    free(local_y);
+    free(local_z);
 
     return;
 }
