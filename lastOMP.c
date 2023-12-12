@@ -117,7 +117,7 @@ double findClosestCenters( double patterns[][Nv], double centers[][Nv], int clas
 
     double error = 0.0 ;
     size_t i, j ;
-	# pragma omp parallel shared( patterns, centers, classes, distances) private(error,size_t, i, j)
+	# pragma omp parallel shared( patterns, centers, classes, distances) private(error, size_t, i, j)
 {
 	#pragma omp for
     for ( i = 0; i < N; i++ ) {
