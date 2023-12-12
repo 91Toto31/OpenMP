@@ -17,7 +17,7 @@ void freeArray( double ***array, double *arrayData ) ;
 void kMeans( double patterns[][Nv], double centers[][Nv] ) ;
 void initialCenters( double patterns[][Nv], double centers[][Nv] ) ;
 double findClosestCenters( double patterns[][Nv], double centers[][Nv], int classes[], double ***distances ) ;
-void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z ) ;
+void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z);
 
 double distEucl( double pattern[], double center[] ) ;
 int argMin( double array[], int length ) ;
@@ -69,7 +69,7 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
 
         #pragma omp parallel for
         for (int i = 0; i < Nc; i++) {
-            recalculateCenters(patterns, centers, classes, &y, &z, i);
+            recalculateCenters(patterns, centers, classes, &y, &z);
         }
 
         printf("Step:%d||Error:%lf,\n", step, (errorBefore - error) / error);
