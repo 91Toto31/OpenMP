@@ -158,7 +158,7 @@ double distEucl( double pattern[], double center[] ) {
     double distance = 0.0 ;
     #pragma omp parallel shared(pattern, center) private (distance) //début région parallèle
 {
-   #pragma omp for reduction(+:distance) 
+   #pragma omp for //reduction(+:distance) 
     for ( int i = 0; i < Nv; i++ )
         distance += ( pattern[i]-center[i] )*( pattern[i]-center[i] ) ;
 } //fin de la zone parallèle
