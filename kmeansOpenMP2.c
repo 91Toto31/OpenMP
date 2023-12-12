@@ -6,194 +6,186 @@
 #include <omp.h>
 #include <time.h>
 
-#define N 100000
-#define Nc 100
-#define Nv 1000
-#define Maxiters 15
+#define N 100000 // N is the number of patterns
+#define Nc 100 // Nc is the number of classes or centers
+#define Nv 1000 // Nv is the length of each pattern (vector)
+#define Maxiters 15 // Maxiters is the maximum number of iterations
 #define Threshold 0.000001
 
-typedef struct {
-    double (*patterns)[Nv];
-    double (*centers)[Nv];
-} KMeansArgs;
+double *mallocArray( double ***array, int n, int m, int initialize ) ;
+void freeArray( double ***array, double *arrayData ) ;
 
-void freeArray(double (*array)[Nv], int n) {
-    free(array);
+void kMeans( double patterns[][Nv], double centers[][Nv] ) ;
+void initialCenters( double patterns[][Nv], double centers[][Nv] ) ;
+double findClosestCenters( double patterns[][Nv], double centers[][Nv], int classes[], double ***distances ) ;
+void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z ) ;
+
+double distEucl( double pattern[], double center[] ) ;
+int argMin( double array[], int length ) ;
+
+void createRandomVectors( double patterns[][Nv] ) ;
+
+int main( int argc, char *argv[] ) {
+
+	static double patterns[N][Nv] ;
+	static double centers[Nc][Nv] ;
+
+	createRandomVectors( patterns ) ;
+	kMeans( patterns, centers ) ;
+
+    return EXIT_SUCCESS;    
 }
 
-double (*mallocArray(int n, int m))[Nv] {
-    double (*array)[Nv] = malloc(n * sizeof(*array));
-    if (array == NULL) {
-        perror("mallocArray");
-        exit(EXIT_FAILURE);
-    }
+void createRandomVectors( double patterns[][Nv] ) {
 
-    return array;
+	srand( 1059364 ) ;
+
+	size_t i, j ;
+	for ( i = 0; i < N; i++ ) {
+		for ( j = 0; j < Nv; j++ ) {
+			patterns[i][j] = (double) (random()%100) - 0.1059364*(i+j) ;
+		}
+	}
+
+	return ;
 }
 
-void createRandomVectors(double patterns[][Nv]) {
-    srand(1059364);
+void kMeans(double patterns[][Nv], double centers[][Nv]) {
+    double error = INFINITY;
+    double errorBefore;
+    int step = 0;
 
-#pragma omp parallel for
-    for (size_t i = 0; i < N; i++) {
-        for (size_t j = 0; j < Nv; j++) {
-            // Modification pour éviter le même nombre aléatoire dans chaque itération
-            patterns[i][j] = (double)(rand() % 100) - 0.1059364 * (i + j + 1);
+    int *classes = (int *)malloc(N * sizeof(int));
+    double **distances;
+    double *distanceData = mallocArray(&distances, N, Nc, 0);
+    double **y, **z;
+    double *yData = mallocArray(&y, Nc, Nv, 1);
+    double *zData = mallocArray(&z, Nc, Nv, 1);
+
+    initialCenters(patterns, centers);
+
+    do {
+        errorBefore = error;
+        error = findClosestCenters(patterns, centers, classes, &distances);
+
+        #pragma omp parallel for
+        for (int i = 0; i < Nc; i++) {
+            recalculateCenters(patterns, centers, classes, &y, &z, i);
+        }
+
+        printf("Step:%d||Error:%lf,\n", step, (errorBefore - error) / error);
+        step++;
+    } while ((step < Maxiters) && ((errorBefore - error) / error > Threshold));
+
+    free(classes);
+    freeArray(&distances, distanceData);
+    freeArray(&y, yData);
+    freeArray(&z, zData);
+}
+
+double *mallocArray( double ***array, int n, int m, int initialize ) {
+
+    * array = (double **)malloc( n * sizeof(double *) ) ;
+    // avoid to fill heap with small memory allocations.
+    double *arrayData = malloc( n*m * sizeof(double) ) ;
+
+    if ( initialize != 0)
+        memset( arrayData, 0, n*m ) ;
+    
+    size_t i ;
+    for( i = 0; i < n; i++ )
+        (* array)[i] = arrayData + i*m ;
+    
+    return arrayData;
+}
+
+void initialCenters( double patterns[][Nv], double centers[][Nv] ) {
+
+    int centerIndex ;
+    size_t i, j ;
+    for ( i = 0; i < Nc; i++ ) {
+        // split patterns in Nc blocks of N/Nc length
+        // use rand and % to pick a random number of each block.
+        centerIndex = rand()%( N/Nc*(i+1) - N/Nc*i + 1 ) + N/Nc*i ;
+        for ( j = 0; j < Nv; j ++ ) {
+            centers[i][j] = patterns[centerIndex][j] ;
         }
     }
+
+    return ;
 }
 
-double distEucl(double pattern[], double center[]) {
-    double distance = 0.0;
+double findClosestCenters( double patterns[][Nv], double centers[][Nv], int classes[], double ***distances ) {
 
-#pragma omp parallel for reduction(+:distance) schedule(static)
-    for (int i = 0; i < Nv; i++) {
-        double diff = pattern[i] - center[i];
-        distance += diff * diff;
-    }
-
-    return sqrt(distance);
-}
-
-int argMin(double array[], int length) {
-    int global_index = 0;
-    double global_min = array[0];
-
-#pragma omp parallel
-    {
-        int private_index = 0;
-        double private_min = array[0];
-
-#pragma omp for schedule(static)
-        for (int i = 1; i < length; i++) {
-            if (private_min > array[i]) {
-                private_index = i;
-                private_min = array[i];
-            }
-        }
-
-#pragma omp critical
-        {
-            if (global_min > private_min) {
-                global_index = private_index;
-                global_min = private_min;
-            }
-        }
-    }
-
-    return global_index;
-}
-
-void initialCenters(double patterns[][Nv], double centers[][Nv]) {
-    srand(time(NULL));
-
-#pragma omp parallel for
-    for (size_t i = 0; i < Nc; i++) {
-        int centerIndex = rand() % (N / Nc * (i + 1) - N / Nc * i + 1) + N / Nc * i;
-        for (size_t j = 0; j < Nv; j++) {
-            centers[i][j] = patterns[centerIndex][j];
-        }
-    }
-}
-
-double findClosestCenters(double patterns[][Nv], double centers[][Nv], int classes[], double distances[][Nc]) {
-    double error = 0.0;
-
-#pragma omp parallel for reduction(+ \
-                                   : error)
-    for (size_t i = 0; i < N; i++) {
-        for (size_t j = 0; j < Nc; j++) {
-            distances[i][j] = distEucl(patterns[i], centers[j]);
-        }
-        classes[i] = argMin(distances[i], Nc);
-        error += distances[i][classes[i]];
+    double error = 0.0 ;
+    size_t i, j ;
+    for ( i = 0; i < N; i++ ) {
+        for ( j = 0; j < Nc; j++ )
+            (* distances)[i][j] = distEucl( patterns[i], centers[j] ) ;
+        classes[i] = argMin( (* distances)[i], Nc ) ;
+        error += (* distances)[i][classes[i]] ;
     }
 
     return error;
 }
 
-void recalculateCenters(int Np, double patterns[][Nv], double centers[][Nv], int *classes, double (*y)[Nv], double (*z)[Nv]) {
-#pragma omp parallel for
-    for (int i = 0; i < Nc; i++) {
-        for (int j = 0; j < Nv; j++) {
-            y[i][j] = 0.0;
-            z[i][j] = 0.0;
+
+void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classes[], double ***y, double ***z ) {
+
+    double error = 0.0 ;
+
+    size_t i, j;
+    // calculate tmp arrays
+    for ( i = 0; i < N; i++ ) {
+        for ( j = 0; j < Nv; j++ ) {
+            (* y)[classes[i]][j] += patterns[i][j] ;
+            (* z)[classes[i]][j] ++ ;
         }
     }
 
-#pragma omp parallel for
-    for (int i = 0; i < Np; i++) {
-        int cluster = classes[i];
-#pragma omp parallel for
-        for (int j = 0; j < Nv; j++) {
-#pragma omp atomic
-            y[cluster][j] += patterns[i][j];
-#pragma omp atomic
-            z[cluster][j] += 1.0;
+    // update step of centers
+    for ( i = 0; i < Nc; i++ ) {
+        for ( j = 0; j < Nv; j++ ) {
+            centers[i][j] = (* y)[i][j]/(* z)[i][j] ;
+            (* y)[i][j] = 0.0 ;
+            (* z)[i][j] = 0.0 ;
         }
     }
-
-#pragma omp parallel for
-    for (int i = 0; i < Nc; i++) {
-        for (int j = 0; j < Nv; j++) {
-            if (z[i][j] != 0) {
-                centers[i][j] = y[i][j] / z[i][j];
-            }
-        }
-    }
-}
-
-void kMeans(double patterns[][Nv], double centers[][Nv]) {
-    int *classes = (int *)malloc(N * sizeof(int));
-    if (classes == NULL) {
-        perror("malloc");
-        exit(EXIT_FAILURE);
-    }
-
-    double (*y)[Nv] = mallocArray(Nc, Nv);
-    double (*z)[Nv] = mallocArray(Nc, Nv);
-
-    int step = 1;
-    double errorBefore = DBL_MAX;
-    double error = 0.0;
-
-    // Ajout de la déclaration de distances
-    double distances[N][Nc];
     
-    while (step <= Maxiters && (errorBefore - error) / error > Threshold) {
-        recalculateCenters(N, patterns, centers, classes, y, z);
+    return ;
+}
 
-        // Calcul de l'erreur
-        errorBefore = error;
-        error = findClosestCenters(patterns, centers, classes, distances);
+double distEucl( double pattern[], double center[] ) {
 
-        // Affichage des résultats
-        printf("Step:%d || Error:%lf\n", step, (errorBefore - error) / error);
-        step++;
+    double distance = 0.0 ;
+
+    for ( int i = 0; i < Nv; i++ )
+        distance += ( pattern[i]-center[i] )*( pattern[i]-center[i] ) ;
+    
+    return sqrt(distance) ;
+}
+
+int argMin( double array[], int length ) {
+
+    int index = 0 ;
+    double min = array[0] ;
+
+    for ( int i = 1; i < length; i++ ) {
+        if ( min > array[i] ) {
+            index = i ;
+            min = array[i] ;
+        }
     }
 
-    freeArray(y, Nc);
-    freeArray(z, Nc);
-    free(classes);
+    return index ;
 }
 
-void kMeansWrapper(void *args) {
-    KMeansArgs *kmeansArgs = (KMeansArgs *)args;
-    kMeans(kmeansArgs->patterns, kmeansArgs->centers);
-}
+void freeArray( double ***array, double *arrayData ) {
+    
+    free( arrayData ) ;
+    free( * array ) ;
 
-int main() {
-    KMeansArgs kmeansArgs;
-    kmeansArgs.patterns = mallocArray(N, Nv);
-    kmeansArgs.centers = mallocArray(Nc, Nv);
-
-    initialCenters(kmeansArgs.patterns, kmeansArgs.centers);
-    kMeans(kmeansArgs.patterns, kmeansArgs.centers);
-
-    freeArray(kmeansArgs.patterns, N);
-    freeArray(kmeansArgs.centers, Nc);
-
-    return 0;
+    return ;
 }
 
 
