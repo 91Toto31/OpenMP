@@ -168,7 +168,7 @@ int argMin( double array[], int length ) {
 
     int index = 0 ;
     double min = array[0] ;
-#pragma omp parallel shared(array, length) private(index,array)
+#pragma omp parallel shared(array, length) private(index,min)
 {
 	#pragma omp for
     for ( int i = 1; i < length; i++ ) {
