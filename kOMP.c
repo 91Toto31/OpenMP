@@ -234,7 +234,7 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
     printf("Recalculate Centers Successful\n"); // Ajout d'une sortie de débogage
 }
 
-int argMin(double array[], int length) {
+/*int argMin(double array[], int length) {
     int index = 0;
     double min = array[0];
     for (int i = 1; i < length; i++) {
@@ -244,7 +244,7 @@ int argMin(double array[], int length) {
         }
     }
     return index;
-}
+} */
 
 /*void freeArray(double ***array, double *arrayData) {
     free(arrayData);
