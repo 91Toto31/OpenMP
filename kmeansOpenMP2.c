@@ -159,7 +159,7 @@ void kMeans(double patterns[][Nv], double centers[][Nv]) {
 
     // Ajout de la déclaration de distances
     double distances[N][Nc];
-
+    
     while (step <= Maxiters && (errorBefore - error) / error > Threshold) {
         recalculateCenters(N, patterns, centers, classes, y, z);
 
