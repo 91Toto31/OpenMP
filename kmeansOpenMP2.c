@@ -138,10 +138,11 @@ void recalculateCenters(double patterns[][Nv], double centers[][Nv], int classes
     #pragma omp parallel for private(j) reduction(+:error)
     for (i = 0; i < N; i++) {
         for (j = 0; j < Nv; j++) {
-            #pragma omp atomic
-            (*y)[classes[i]][j] += patterns[i][j];
-            #pragma omp atomic
-            (*z)[classes[i]][j]++;
+            #pragma omp critical
+            {
+                (*y)[classes[i]][j] += patterns[i][j];
+                (*z)[classes[i]][j]++;
+            }
         }
     }
 
