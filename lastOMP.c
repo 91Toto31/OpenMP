@@ -29,6 +29,17 @@ int main( int argc, char *argv[] ) {
 	static double patterns[N][Nv] ;
 	static double centers[Nc][Nv] ;
 
+	int numThreads;
+
+	 #pragma omp parallel
+    {
+        #pragma omp master
+        {
+            numThreads = omp_get_num_threads();
+            printf("Number of threads: %d\n", numThreads);
+        }
+    }
+	
 	createRandomVectors( patterns ) ;
 	kMeans( patterns, centers ) ;
 
