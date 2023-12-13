@@ -175,6 +175,7 @@ void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classe
     }
 //} //end para
     return ;
+}
 
 double distEucl( double pattern[], double center[] ) {
 
