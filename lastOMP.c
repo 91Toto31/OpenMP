@@ -153,10 +153,10 @@ void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classe
     double error = 0.0 ;
 
     size_t i, j;
-	// #pragma omp parallel shared(patterns, centers, classes, y, z) private(i, j) reduction(+:error)
-//{
+	 #pragma omp parallel shared(patterns, centers, classes, y, z) private(i, j) reduction(+:error)
+{
     // calculate tmp arrays
-	// #pragma omp for
+	 #pragma omp for
     for (i = 0; i < N; i++) {
         for (j = 0; j < Nv; j++) {
             (*y)[classes[i]][j] += patterns[i][j];
@@ -165,7 +165,7 @@ void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classe
     }
 
     // update step of centers
-   // #pragma omp for
+    #pragma omp for
     for (i = 0; i < Nc; i++) {
         for (j = 0; j < Nv; j++) {
             centers[i][j] = (*y)[i][j] / (*z)[i][j];
@@ -173,7 +173,7 @@ void recalculateCenters( double patterns[][Nv], double centers[][Nv], int classe
             (*z)[i][j] = 0.0;
         }
     }
-//} //end para
+} //end para
     return ;
 }
 
