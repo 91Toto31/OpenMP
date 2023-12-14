@@ -1192,12 +1192,14 @@ void arch_init(int argc, char **argv, struct options *op)
 /*--------------------------------------------------------------------------*/ 
 /* Matrix vector product - basic version                                    */
 
-void smvp(int nodes, double ***A, int *Acol, 
-		int *Aindex, double **v, double **w) {
+void smvp(int nodes, double ***A, int *Acol, int *Aindex, double **v, double **w) {
   int i;
   int Anext, Alast, col;
   double sum0, sum1, sum2;
 
+	#pragma omp parallel shared (nodes, A, Acol, Aindex, v, w) private (i, Anext, Alast, col, sum0, sum1, sum2)
+{
+	#pragma omp for
   for (i = 0; i < nodes; i++) {
     Anext = Aindex[i];
     Alast = Aindex[i + 1];
@@ -1224,6 +1226,7 @@ void smvp(int nodes, double ***A, int *Acol,
     w[i][1] += sum1;
     w[i][2] += sum2;
   }
+}//end para
 }
 
 
