@@ -232,7 +232,7 @@ int main(int argc, char **argv)
   fflush(stderr);
 
 /* Redefine nodekind to be 1 for all surface nodes */
- #pragma omp parallel for shared(nodekind, nodekindf)
+ #pragma omp parallel for shared(nodekind, nodekindf,ARCHnodes)
   for (i = 0; i < ARCHnodes; i++) {
     nodekind[i] = (int) nodekindf[i];
     if (nodekind[i] == 3) 
@@ -241,7 +241,7 @@ int main(int argc, char **argv)
 
 /* Search for the node closest to the point source (hypocenter) and */
 /*        for the node closest to the epicenter */
- #pragma omp parallel private (d1,d2,c0) shared (bigdist1, bigdist2,ARCHcoord)
+ #pragma omp parallel shared (bigdist1, bigdist2,ARCHcoord, Src, ARCHnodes) private (d1,d2,c0) 
 {
   bigdist1 = 1000000.0;
   bigdist2 = 1000000.0;
@@ -286,7 +286,7 @@ int main(int argc, char **argv)
 /* Search for all the elements that contain the source node */
 
   if (Src.sourcenode != 0) {
- #pragma omp parallel for private(cor, vertices, xc, i, j, k) shared(ARCHvertex, ARCHcoord, source_elms)
+ #pragma omp parallel for shared(ARCHvertex, ARCHcoord, source_elms, Src) private(cor, vertices, xc, i, j, k) 
     for (i = 0; i < ARCHelems; i++) {
       for (j = 0; j < 4; j++)
         cor[j] = ARCHvertex[i][j];
@@ -1348,7 +1348,7 @@ void mem_init(void) {
     fflush(stderr);
     exit(0);
   }
- // #pragma omp parallel for
+ 
   for (i = 0; i < ARCHnodes; i++) {
     vel[i] = (double *)malloc(3 * sizeof(double));
     if (vel[i] == (double *)NULL) {
@@ -1365,7 +1365,7 @@ void mem_init(void) {
     fflush(stderr);
     exit(0);
   }
- // #pragma omp parallel for
+
   for (i = 0; i < ARCHnodes; i++) {
     M[i] = (double *)malloc(3 * sizeof(double));
     if (M[i] == (double *)NULL) {
@@ -1382,7 +1382,7 @@ void mem_init(void) {
     fflush(stderr);
     exit(0);
   }
-//  #pragma omp parallel for
+
   for (i = 0; i < ARCHnodes; i++) {
     C[i] = (double *)malloc(3 * sizeof(double));
     if (C[i] == (double *)NULL) {
@@ -1399,7 +1399,7 @@ void mem_init(void) {
     fflush(stderr);
     exit(0);
   }
- // #pragma omp parallel for
+ 
   for (i = 0; i < ARCHnodes; i++) {
     M23[i] = (double *)malloc(3 * sizeof(double));
     if (M23[i] == (double *)NULL) {
@@ -1416,7 +1416,7 @@ void mem_init(void) {
     fflush(stderr);
     exit(0);
   }
-//  #pragma omp parallel for
+
   for (i = 0; i < ARCHnodes; i++) {
     C23[i] = (double *)malloc(3 * sizeof(double));
     if (C23[i] == (double *)NULL) {
@@ -1433,7 +1433,7 @@ void mem_init(void) {
     fflush(stderr);
     exit(0);
   }
- // #pragma omp parallel for
+
   for (i = 0; i < ARCHnodes; i++) {
     V23[i] = (double *)malloc(3 * sizeof(double));
     if (V23[i] == (double *)NULL) {
@@ -1450,7 +1450,7 @@ void mem_init(void) {
     fflush(stderr);
     exit(0);
   }
-//  #pragma omp parallel for
+
   for (i = 0; i < 3; i++) {
     disp[i] = (double **)malloc(ARCHnodes * sizeof(double *));
     if (disp[i] == (double **)NULL) {
@@ -1475,7 +1475,7 @@ void mem_init(void) {
     fflush(stderr);
     exit(0);
   }
-//  #pragma omp parallel for
+	
   for (i = 0; i < ARCHmatrixlen; i++) {
     K[i] = (double **)malloc(3 * sizeof(double *));
     if (K[i] == (double **)NULL) {
@@ -1514,7 +1514,7 @@ void mem_init(void) {
   for (i = 0; i < ARCHelems; i++) {
     source_elms[i] = 1;
   }
-// #pragma omp for collapse(3)
+ #pragma omp for collapse(3)
   for (i = 0; i < ARCHmatrixlen; i++) {
     for (j = 0; j < 3; j++) {
       for (k = 0; k < 3; k++) {
