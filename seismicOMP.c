@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <omp.h>
 
 #define AMAX_NAME  128
 
