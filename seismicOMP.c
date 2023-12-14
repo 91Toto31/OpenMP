@@ -1,4 +1,4 @@
-xi/*
+/*
  * Quake benchmark
  * Loukas Kallivokas and David O'Hallaron
  * Carnegie Mellon University, November, 1997
