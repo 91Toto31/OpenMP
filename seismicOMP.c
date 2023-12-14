@@ -232,7 +232,7 @@ int main(int argc, char **argv)
   fflush(stderr);
 
 /* Redefine nodekind to be 1 for all surface nodes */
-
+#pragma omp parallel for shared(nodekind, nodekindf)
   for (i = 0; i < ARCHnodes; i++) {
     nodekind[i] = (int) nodekindf[i];
     if (nodekind[i] == 3) 
@@ -241,10 +241,11 @@ int main(int argc, char **argv)
 
 /* Search for the node closest to the point source (hypocenter) and */
 /*        for the node closest to the epicenter */
-
+#pragma omp parallel private (d1,d2,c0) shared (bigdist1, bigdist2,ARCHcoord)
+{
   bigdist1 = 1000000.0;
   bigdist2 = 1000000.0;
-
+#pragma omp for
   for (i = 0; i < ARCHnodes; i++) {
     c0[0] = ARCHcoord[i][0];
     c0[1] = ARCHcoord[i][1];
@@ -261,7 +262,7 @@ int main(int argc, char **argv)
       bigdist2 = d2;
       Src.epicenternode = i;
     }
-
+  }
   }
 
   if (Src.sourcenode != 0 && Src.sourcenode <= ARCHmine) {
@@ -285,7 +286,7 @@ int main(int argc, char **argv)
 /* Search for all the elements that contain the source node */
 
   if (Src.sourcenode != 0) {
-
+#pragma omp parallel for private(cor, vertices, xc, i, j, k) shared(ARCHvertex, ARCHcoord, source_elms)
     for (i = 0; i < ARCHelems; i++) {
       for (j = 0; j < 4; j++)
         cor[j] = ARCHvertex[i][j];
@@ -446,7 +447,7 @@ int main(int argc, char **argv)
   fprintf(stderr, "\n");
 
   for (iter = 1; iter <= timesteps; iter++) {
-
+#pragma omp parallel for collapse(2) shared(disp)
     for (i = 0; i < ARCHnodes; i++)
       for (j = 0; j < 3; j++)
         disp[disptplus][i][j] = 0.0;
@@ -456,11 +457,13 @@ int main(int argc, char **argv)
 	       disp[dispt], disp[disptplus]);
 
     time = iter * Exc.dt;
-
+	  
+#pragma omp parallel for private(i, j) collapse(2)
     for (i = 0; i < ARCHnodes; i++)
       for (j = 0; j < 3; j++)
         disp[disptplus][i][j] *= - Exc.dt * Exc.dt;
-
+	  
+#pragma omp parallel for private(i, j) collapse(2)
     for (i = 0; i < ARCHnodes; i++)
       for (j = 0; j < 3; j++)
         disp[disptplus][i][j] += 2.0 * M[i][j] * disp[dispt][i][j] - 
@@ -468,12 +471,14 @@ int main(int argc, char **argv)
 	    Exc.dt * Exc.dt * (M23[i][j] * phi2(time) / 2.0 +
 			       C23[i][j] * phi1(time) / 2.0 +
 			       V23[i][j] * phi0(time) / 2.0);
-
+	  
+#pragma omp parallel for private(i, j) collapse(2)
     for (i = 0; i < ARCHnodes; i++)
       for (j = 0; j < 3; j++)
         disp[disptplus][i][j] = disp[disptplus][i][j] /
 	                        (M[i][j] + Exc.dt / 2.0 * C[i][j]);
 
+#pragma omp parallel for private(i, j) collapse(2)
     for (i = 0; i < ARCHnodes; i++)
       for (j = 0; j < 3; j++)
         vel[i][j] = 0.5 / Exc.dt * (disp[disptplus][i][j] -
