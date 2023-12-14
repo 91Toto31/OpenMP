@@ -1489,8 +1489,9 @@ void mem_init(void) {
   }
 
   /* Initializations */
-	
-  #pragma omp parallel for private (i,j)
+	#pragma omp parallel private (i,j)
+{
+  #pragma omp for 
   for (i = 0; i < ARCHnodes; i++) {
     nodekind[i] = 0;
     for (j = 0; j < 3; j++) {
@@ -1516,5 +1517,6 @@ void mem_init(void) {
       }
     }
   }
+}
 }
 /*--------------------------------------------------------------------------*/ 
