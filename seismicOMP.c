@@ -1,4 +1,4 @@
-/*
+xi/*
  * Quake benchmark
  * Loukas Kallivokas and David O'Hallaron
  * Carnegie Mellon University, November, 1997
@@ -1494,8 +1494,8 @@ void mem_init(void) {
   }
 
   /* Initializations */
-	#pragma omp parallel private (i,j)
-{
+	//#pragma omp parallel private (i,j)
+//{
 //  #pragma omp for 
   for (i = 0; i < ARCHnodes; i++) {
     nodekind[i] = 0;
@@ -1522,6 +1522,6 @@ void mem_init(void) {
       }
     }
   }
-}
+//}
 }
 /*--------------------------------------------------------------------------*/ 
